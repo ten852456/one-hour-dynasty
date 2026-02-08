@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Home() {
   return (
@@ -6,11 +7,17 @@ export default function Home() {
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-4">
         <div className="max-w-6xl mx-auto text-center">
-          {/* Decorative Elements */}
-          <div className="flex justify-center items-center space-x-4 mb-8">
-            <div className="h-px w-20 bg-gradient-to-r from-transparent to-red-900"></div>
-            <span className="text-4xl">⚔️</span>
-            <div className="h-px w-20 bg-gradient-to-l from-transparent to-red-900"></div>
+          {/* Logo */}
+          <div className="flex justify-center mb-8">
+            <div className="relative w-48 h-48 md:w-64 md:h-64">
+              <Image
+                src="/logo.png"
+                alt="One Hour Dynasty"
+                fill
+                className="object-contain animate-pulse"
+                style={{ animationDuration: '3s' }}
+              />
+            </div>
           </div>
 
           {/* Title */}
