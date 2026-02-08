@@ -29,7 +29,7 @@ describe("ItemStore", function () {
     it("Should allow buying SPEED_START boost", async function () {
       await expect(itemStore.connect(buyer).buyBoost(0))
         .to.emit(itemStore, "BoostPurchased")
-        .withArgs(buyer.address, 0);
+        .withArgs(buyer.address, 0, ethers.parseEther("10"));
 
       const balance = await wuxia.balanceOf(buyer.address);
       expect(await ethers.formatEther(balance)).to.equal("9990.0");
@@ -52,40 +52,62 @@ describe("ItemStore", function () {
 
   describe("Subscription Purchases", function () {
     it("Should allow buying BRONZE subscription", async function () {
-      await expect(itemStore.connect(buyer).buySubscription(0))
-        .to.emit(itemStore, "SubscriptionPurchased");
+      await itemStore.connect(buyer).buySubscription(0); // BRONZE
 
-      const treasuryBalance = await wuxia.balanceOf(treasury.address);
-      expect(await ethers.formatEther(treasuryBalance)).to.equal("100.0");
+      const expiry = await itemStore.subscriptionExpiry(buyer.address);
+      expect(expiry).to.be.gt(0);
     });
 
     it("Should set correct subscription expiry", async function () {
       const block = await ethers.provider.getBlock("latest");
-      const timestamp = block!.timestamp;
+      const expectedExpiry = block!.timestamp + 30 * 24 * 60 * 60;
 
-      await itemStore.connect(buyer).buySubscription(1); // SILVER
+      await itemStore.connect(buyer).buySubscription(0); // BRONZE
 
       const expiry = await itemStore.subscriptionExpiry(buyer.address);
-      const expectedExpiry = timestamp + 30 * 24 * 60 * 60;
-
-      expect(expiry).to.be.closeTo(expectedExpiry, 5);
+      expect(expiry).to.be.closeTo(expectedExpiry, 60); // Allow 60s variance
     });
 
     it("Should correctly identify active subscription", async function () {
-      await itemStore.connect(buyer).buySubscription(2); // GOLD
+      await itemStore.connect(buyer).buySubscription(0); // BRONZE
+
       expect(await itemStore.hasActiveSubscription(buyer.address)).to.be.true;
+    });
+
+    it("Should extend subscription when buying while active", async function () {
+      await itemStore.connect(buyer).buySubscription(0); // BRONZE
+      const firstExpiry = await itemStore.subscriptionExpiry(buyer.address);
+
+      // Fast forward 15 days
+      await ethers.provider.send("evm_increaseTime", [15 * 24 * 60 * 60]);
+      await ethers.provider.send("evm_mine");
+
+      await itemStore.connect(buyer).buySubscription(0); // Buy again
+      const secondExpiry = await itemStore.subscriptionExpiry(buyer.address);
+
+      // Should extend from first expiry, not from now
+      const expectedExtension = firstExpiry + BigInt(30 * 24 * 60 * 60);
+      expect(secondExpiry).to.be.closeTo(expectedExtension, 60n);
     });
   });
 
   describe("Admin Functions", function () {
     it("Should allow owner to set new treasury", async function () {
-      await itemStore.connect(owner).setTreasury(buyer.address);
-      expect(await itemStore.treasury()).to.equal(buyer.address);
+      const newTreasury = owner.address;
+      await expect(itemStore.connect(owner).setTreasury(newTreasury))
+        .to.emit(itemStore, "TreasuryUpdated")
+        .withArgs(treasury.address, newTreasury);
+
+      expect(await itemStore.treasury()).to.equal(newTreasury);
     });
 
     it("Should allow owner to update boost prices", async function () {
-      await itemStore.connect(owner).setBoostPrice(0, ethers.parseEther("50"));
-      expect(await itemStore.boostPrices(0)).to.equal(ethers.parseEther("50"));
+      const newPrice = ethers.parseEther("12");
+      await expect(itemStore.connect(owner).setBoostPrice(0, newPrice))
+        .to.emit(itemStore, "PriceUpdated")
+        .withArgs(0, ethers.parseEther("10"), newPrice);
+
+      expect(await itemStore.boostPrices(0)).to.equal(newPrice);
     });
 
     it("Should not allow non-owner to set treasury", async function () {

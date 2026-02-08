@@ -13,9 +13,20 @@ contract Errors {
     error InvalidPrizeToken();
     error InvalidReputationRegistry();
 
+    // Supply errors
+    error SupplyCapExceeded();
+
     // Game state errors
     error GameNotRecorded(uint256 gameId);
     error GameAlreadyRecorded();
+    error PrizesAlreadyDistributed();
+
+    // Agent validation errors
+    error TooManyAgents();
+    error DuplicateAgent();
+    error InvalidRank();
+    error RankExceedsAgents();
+    error InvalidScore();
 
     // Staking errors
     error NoStakeFound();
