@@ -43,7 +43,7 @@ describe("Staking", function () {
 
       await expect(
         staking.connect(staker).stake(ethers.parseEther("1000"), 0)
-      ).to.be.revertedWith("Already staked");
+      ).to.be.revertedWithCustomError(staking, "AlreadyStaked");
     });
 
     it("Should correctly identify priority queue access", async function () {
@@ -86,7 +86,7 @@ describe("Staking", function () {
 
       await expect(
         staking.connect(staker).unstake()
-      ).to.be.revertedWith("Lock period not expired");
+      ).to.be.revertedWithCustomError(staking, "LockPeriodNotExpired");
     });
 
     it("Should allow unstaking after lock period expires", async function () {

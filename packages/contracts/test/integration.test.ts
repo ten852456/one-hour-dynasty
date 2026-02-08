@@ -101,6 +101,6 @@ describe("Integration: Full Game Flow", function () {
 
     expect(await staking.canAccessGrandWar(agent1.address)).to.be.true;
 
-    await expect(staking.connect(agent1).unstake()).to.be.revertedWith("Lock period not expired");
+    await expect(staking.connect(agent1).unstake()).to.be.revertedWithCustomError(staking, "LockPeriodNotExpired");
   });
 });

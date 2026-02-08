@@ -67,7 +67,7 @@ describe("GameResultsRecorder", function () {
 
       await expect(
         recorder.recordGameResult(gameId, agents, ranks, scores)
-      ).to.be.revertedWith("Game already recorded");
+      ).to.be.revertedWithCustomError(recorder, "GameAlreadyRecorded");
     });
   });
 

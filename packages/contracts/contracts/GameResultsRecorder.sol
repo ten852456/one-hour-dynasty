@@ -6,8 +6,9 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./IERC8004ReputationRegistry.sol";
+import "./Errors.sol";
 
-contract GameResultsRecorder is Ownable, ReentrancyGuard {
+contract GameResultsRecorder is Ownable, ReentrancyGuard, Errors {
     using SafeERC20 for IERC20;
 
     IERC20 public prizeToken;
@@ -28,8 +29,8 @@ contract GameResultsRecorder is Ownable, ReentrancyGuard {
     event ReputationSubmitted(address indexed agent, uint256 tokenId, uint8 score);
 
     constructor(address _prizeToken, address _reputationRegistry) Ownable(msg.sender) {
-        require(_prizeToken != address(0), "Invalid prize token address");
-        require(_reputationRegistry != address(0), "Invalid reputation registry");
+        if (_prizeToken == address(0)) revert InvalidPrizeToken();
+        if (_reputationRegistry == address(0)) revert InvalidReputationRegistry();
         prizeToken = IERC20(_prizeToken);
         reputationRegistry = IERC8004ReputationRegistry(_reputationRegistry);
     }
@@ -40,11 +41,10 @@ contract GameResultsRecorder is Ownable, ReentrancyGuard {
         uint256[] calldata ranks,
         uint256[] calldata scores
     ) external onlyOwner {
-        require(
-            agents.length == ranks.length && ranks.length == scores.length,
-            "Array length mismatch"
-        );
-        require(!games[gameId].recorded, "Game already recorded");
+        if (agents.length != ranks.length || ranks.length != scores.length) {
+            revert ArrayLengthMismatch();
+        }
+        if (games[gameId].recorded) revert GameAlreadyRecorded();
 
         GameResult storage game = games[gameId];
         game.gameId = gameId;
@@ -65,7 +65,7 @@ contract GameResultsRecorder is Ownable, ReentrancyGuard {
         uint256 tokenId,
         string calldata feedbackURI
     ) external onlyOwner {
-        require(games[gameId].recorded, "Game not recorded");
+        if (!games[gameId].recorded) revert GameNotRecorded(gameId);
 
         uint256 rank = games[gameId].ranks[agent];
         uint8 score = _calculateReputationScore(rank);
@@ -80,11 +80,11 @@ contract GameResultsRecorder is Ownable, ReentrancyGuard {
         address[] calldata winners,
         uint256[] calldata amounts
     ) external onlyOwner nonReentrant {
-        require(games[gameId].recorded, "Game not recorded");
-        require(winners.length == amounts.length, "Array length mismatch");
+        if (!games[gameId].recorded) revert GameNotRecorded(gameId);
+        if (winners.length != amounts.length) revert ArrayLengthMismatch();
 
         for (uint256 i = 0; i < winners.length; i++) {
-            require(amounts[i] > 0, "Amount must be > 0");
+            if (amounts[i] == 0) revert InvalidAmount();
             prizeToken.safeTransfer(winners[i], amounts[i]);
 
             emit PrizeDistributed(gameId, winners[i], amounts[i]);
@@ -95,9 +95,9 @@ contract GameResultsRecorder is Ownable, ReentrancyGuard {
         uint256 gameId,
         address[] calldata winners,
         uint256[] calldata amounts
-    ) external onlyOwner {
-        require(games[gameId].recorded, "Game not recorded");
-        require(winners.length == amounts.length, "Array length mismatch");
+    ) external onlyOwner nonReentrant {
+        if (!games[gameId].recorded) revert GameNotRecorded(gameId);
+        if (winners.length != amounts.length) revert ArrayLengthMismatch();
 
         for (uint256 i = 0; i < winners.length; i++) {
             prizeToken.safeTransfer(winners[i], amounts[i]);

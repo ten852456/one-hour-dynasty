@@ -5,8 +5,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./Errors.sol";
 
-contract Staking is Ownable, ReentrancyGuard {
+contract Staking is Ownable, ReentrancyGuard, Errors {
     using SafeERC20 for IERC20;
 
     IERC20 public wuxiaToken;
@@ -27,13 +28,13 @@ contract Staking is Ownable, ReentrancyGuard {
     event Unstaked(address indexed user, uint256 amount);
 
     constructor(address _wuxiaToken) Ownable(msg.sender) {
-        require(_wuxiaToken != address(0), "Invalid token address");
+        if (_wuxiaToken == address(0)) revert InvalidToken();
         wuxiaToken = IERC20(_wuxiaToken);
     }
 
     function stake(uint256 amount, uint256 lockDuration) external nonReentrant {
-        require(amount > 0, "Amount must be > 0");
-        require(stakes[msg.sender].amount == 0, "Already staked");
+        if (amount == 0) revert AmountMustBePositive();
+        if (stakes[msg.sender].amount > 0) revert AlreadyStaked();
 
         wuxiaToken.safeTransferFrom(msg.sender, address(this), amount);
 
@@ -48,13 +49,12 @@ contract Staking is Ownable, ReentrancyGuard {
 
     function unstake() external nonReentrant {
         Stake memory userStake = stakes[msg.sender];
-        require(userStake.amount > 0, "No stake found");
+        if (userStake.amount == 0) revert NoStakeFound();
 
         if (userStake.lockDuration > 0) {
-            require(
-                block.timestamp >= userStake.timestamp + userStake.lockDuration,
-                "Lock period not expired"
-            );
+            if (block.timestamp < userStake.timestamp + userStake.lockDuration) {
+                revert LockPeriodNotExpired();
+            }
         }
 
         uint256 amount = userStake.amount;

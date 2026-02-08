@@ -4,13 +4,14 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./Errors.sol";
 
 /**
  * @title WuxiaToken
  * @dev ERC20 token for One Hour Dynasty game with burnable functionality
  * @custom:security-contact security@onehourdynasty.com
  */
-contract WuxiaToken is ERC20, ERC20Burnable, Ownable {
+contract WuxiaToken is ERC20, ERC20Burnable, Ownable, Errors {
     /// @dev Total supply constant: 100,000,000 tokens (100 million)
     uint256 public constant TOTAL_SUPPLY = 100_000_000 * 10**18;
 
@@ -19,7 +20,7 @@ contract WuxiaToken is ERC20, ERC20Burnable, Ownable {
      * @param initialOwner The address that will receive the initial token supply and become the owner
      */
     constructor(address initialOwner) ERC20("WUXIA", "WUXIA") Ownable(initialOwner) {
-        require(initialOwner != address(0), "Invalid owner address");
+        if (initialOwner == address(0)) revert InvalidOwner();
         _mint(initialOwner, TOTAL_SUPPLY);
     }
 
@@ -29,7 +30,7 @@ contract WuxiaToken is ERC20, ERC20Burnable, Ownable {
      * @param amount The amount of tokens to mint
      */
     function mint(address to, uint256 amount) public onlyOwner {
-        require(to != address(0), "Invalid mint address");
+        if (to == address(0)) revert InvalidOwner();
         _mint(to, amount);
     }
 }

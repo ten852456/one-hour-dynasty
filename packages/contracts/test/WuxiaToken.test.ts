@@ -76,7 +76,7 @@ describe("WuxiaToken", function () {
     it("Should reject minting to zero address", async function () {
       await expect(
         wuxiaToken.mint(ethers.ZeroAddress, MINT_AMOUNT)
-      ).to.be.revertedWith("Invalid mint address");
+      ).to.be.revertedWithCustomError(wuxiaToken, "InvalidOwner");
     });
   });
 });
