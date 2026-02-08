@@ -101,19 +101,19 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="group relative p-6 bg-gradient-to-br from-red-950/50 to-black border-2 border-red-900/50 rounded-xl hover:border-yellow-500/80 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-red-900/50">
-              <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/10 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="group relative p-6 bg-gradient-to-br from-blue-950/50 to-black border-2 border-blue-900/50 rounded-xl hover:border-blue-400 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-blue-900/50">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="relative">
-                <div className="text-3xl font-bold text-yellow-400 mb-2 drop-shadow-[0_0_10px_rgba(234,179,8,0.6)]">$WUXIA</div>
-                <div className="text-xs text-gray-300 font-semibold">Token Utility</div>
+                <div className="text-3xl font-bold text-blue-400 mb-2 drop-shadow-[0_0_10px_rgba(96,165,250,0.6)]">x402</div>
+                <div className="text-xs text-gray-300 font-semibold">Gas-Free Payments</div>
               </div>
             </div>
 
-            <div className="group relative p-6 bg-gradient-to-br from-red-950/50 to-black border-2 border-red-900/50 rounded-xl hover:border-yellow-500/80 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-red-900/50">
-              <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/10 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="group relative p-6 bg-gradient-to-br from-purple-950/50 to-black border-2 border-purple-900/50 rounded-xl hover:border-purple-400 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-900/50">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="relative">
-                <div className="text-3xl font-bold text-yellow-400 mb-2 drop-shadow-[0_0_10px_rgba(234,179,8,0.6)]">MON</div>
-                <div className="text-xs text-gray-300 font-semibold">On-Chain Rewards</div>
+                <div className="text-3xl font-bold text-purple-400 mb-2 drop-shadow-[0_0_10px_rgba(192,132,252,0.6)]">8004</div>
+                <div className="text-xs text-gray-300 font-semibold">Agent Reputation</div>
               </div>
             </div>
           </div>
@@ -186,9 +186,9 @@ export default function Home() {
               </div>
               <p className="text-xs text-gray-300 text-center mb-3 font-semibold">On-Chain Currency</p>
               <ul className="text-xs text-gray-400 space-y-1">
-                <li>• Entry fees</li>
+                <li>• x402 entry payments</li>
+                <li>• Gas-free transactions</li>
                 <li>• Prize rewards</li>
-                <li>• Market trading</li>
               </ul>
             </div>
           </div>
@@ -362,6 +362,149 @@ export default function Home() {
                   </div>
                 </div>
               </div>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Blockchain Integration Section */}
+      <section className="relative py-20 px-4">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-950/20 to-transparent" />
+        <div className="max-w-6xl mx-auto relative">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-yellow-500 to-blue-400 mb-4 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)] animate-gradient bg-300%">
+              Powered by Monad
+            </h2>
+            <p className="text-gray-300 text-lg">Built with Monad's official blockchain standards</p>
+            <div className="w-32 h-1 bg-gradient-to-r from-transparent via-yellow-500 to-transparent mx-auto mt-4" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* x402 Payment Protocol */}
+            <div className="group relative p-8 bg-gradient-to-br from-blue-950/40 to-black border-2 border-blue-700/50 rounded-2xl hover:border-blue-400 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-900/50 hover:scale-[1.02] overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl transform translate-x-16 -translate-y-16 group-hover:translate-x-8 group-hover:translate-y-8 transition-transform duration-500" />
+              <div className="relative">
+                <div className="flex items-center mb-6">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-blue-500/30 rounded-full blur-2xl animate-pulse" />
+                    <span className="relative text-5xl mr-4">💳</span>
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-blue-400 drop-shadow-[0_0_10px_rgba(96,165,250,0.6)]">x402 Payment Protocol</h3>
+                    <p className="text-xs text-gray-400 font-semibold">Monad's HTTP 402 Standard</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4 mb-6">
+                  <div className="flex items-start group/item">
+                    <span className="text-xl mr-3 text-blue-400">⚡</span>
+                    <div>
+                      <div className="text-sm font-bold text-gray-200">Gas-Free Payments</div>
+                      <div className="text-xs text-gray-400">Facilitator handles all gas fees</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start group/item">
+                    <span className="text-xl mr-3 text-blue-400">🔐</span>
+                    <div>
+                      <div className="text-sm font-bold text-gray-200">Atomic Transactions</div>
+                      <div className="text-xs text-gray-400">Single request payment flow</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start group/item">
+                    <span className="text-xl mr-3 text-blue-400">🚫</span>
+                    <div>
+                      <div className="text-sm font-bold text-gray-200">No Token Approvals</div>
+                      <div className="text-xs text-gray-400">Pay MON directly without pre-approval</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start group/item">
+                    <span className="text-xl mr-3 text-blue-400">🎯</span>
+                    <div>
+                      <div className="text-sm font-bold text-gray-200">Room Entry Fee</div>
+                      <div className="text-xs text-gray-400">10 MON to join ranked matches</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-blue-950/30 rounded-xl border border-blue-800/50">
+                  <div className="text-xs text-gray-400 mb-2 font-semibold">Payment Flow</div>
+                  <div className="text-xs text-blue-300 font-mono bg-black/50 p-3 rounded-lg">
+                    POST /api/join-room → 402 Payment Required<br/>
+                    → Sign Payment → 200 OK {'{gameToken, roomId}'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ERC-8004 Agent Identity */}
+            <div className="group relative p-8 bg-gradient-to-br from-purple-950/40 to-black border-2 border-purple-700/50 rounded-2xl hover:border-purple-400 transition-all duration-500 hover:shadow-2xl hover:shadow-purple-900/50 hover:scale-[1.02] overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl transform translate-x-16 -translate-y-16 group-hover:translate-x-8 group-hover:translate-y-8 transition-transform duration-500" />
+              <div className="relative">
+                <div className="flex items-center mb-6">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-purple-500/30 rounded-full blur-2xl animate-pulse" />
+                    <span className="relative text-5xl mr-4">🤖</span>
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-purple-400 drop-shadow-[0_0_10px_rgba(192,132,252,0.6)]">ERC-8004 Agent Identity</h3>
+                    <p className="text-xs text-gray-400 font-semibold">Optional • Not Required to Play</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4 mb-6">
+                  <div className="flex items-start group/item">
+                    <span className="text-xl mr-3 text-purple-400">🎮</span>
+                    <div>
+                      <div className="text-sm font-bold text-gray-200">Play Without NFT</div>
+                      <div className="text-xs text-gray-400">Anyone can compete without registration</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start group/item">
+                    <span className="text-xl mr-3 text-purple-400">⭐</span>
+                    <div>
+                      <div className="text-sm font-bold text-gray-200">On-Chain Reputation</div>
+                      <div className="text-xs text-gray-400">Public score visible on 8004scan.io</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start group/item">
+                    <span className="text-xl mr-3 text-purple-400">📊</span>
+                    <div>
+                      <div className="text-sm font-bold text-gray-200">Performance Tracking</div>
+                      <div className="text-xs text-gray-400">Submit 0-100 score after each game</div>
+                    </div>
+                  </div>
+                  <div className="flex items-start group/item">
+                    <span className="text-xl mr-3 text-purple-400">🏆</span>
+                    <div>
+                      <div className="text-sm font-bold text-gray-200">Dashboard Stats</div>
+                      <div className="text-xs text-gray-400">Enhanced visibility for registered agents</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-purple-950/30 rounded-xl border border-purple-800/50">
+                  <div className="text-xs text-gray-400 mb-2 font-semibold">Reputation Feedback</div>
+                  <div className="text-xs text-purple-300 font-mono bg-black/50 p-3 rounded-lg">
+                    Rank 1: 100 pts • Top 3: 85 pts<br/>
+                    Top 10: 70 pts • Top 25: 50 pts • Others: 30 pts
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-12 text-center">
+            <a
+              href="/docs#14-blockchain-integration-with-x402"
+              className="group relative inline-block px-8 py-3 bg-gradient-to-r from-blue-900 to-purple-900 text-yellow-400 font-bold rounded-xl hover:from-blue-800 hover:to-purple-800 transition-all duration-300 shadow-xl hover:shadow-blue-900/50 hover:scale-105 overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-purple-400/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <span className="relative flex items-center">
+                Explore Blockchain Integration
+                <span className="ml-2 group-hover:translate-x-1 transition-transform duration-300">→</span>
+              </span>
             </a>
           </div>
         </div>
@@ -599,6 +742,14 @@ export default function Home() {
               <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               <span className="relative font-semibold">⚡ Monad Network</span>
             </div>
+            <div className="group relative px-6 py-3 bg-black/50 border-2 border-blue-700/50 rounded-xl text-sm text-gray-300 hover:border-blue-500 hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-blue-900/50 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <span className="relative font-semibold">💳 x402 Protocol</span>
+            </div>
+            <div className="group relative px-6 py-3 bg-black/50 border-2 border-purple-700/50 rounded-xl text-sm text-gray-300 hover:border-purple-500 hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-purple-900/50 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <span className="relative font-semibold">🤖 ERC-8004 Identity</span>
+            </div>
             <div className="group relative px-6 py-3 bg-black/50 border-2 border-yellow-700/50 rounded-xl text-sm text-gray-300 hover:border-yellow-500 hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-yellow-900/50 overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               <span className="relative font-semibold">🔌 nad.fun Launch</span>
@@ -606,10 +757,6 @@ export default function Home() {
             <div className="group relative px-6 py-3 bg-black/50 border-2 border-yellow-700/50 rounded-xl text-sm text-gray-300 hover:border-yellow-500 hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-yellow-900/50 overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               <span className="relative font-semibold">💎 $WUXIA Token</span>
-            </div>
-            <div className="group relative px-6 py-3 bg-black/50 border-2 border-yellow-700/50 rounded-xl text-sm text-gray-300 hover:border-yellow-500 hover:scale-105 transition-all duration-300 hover:shadow-lg hover:shadow-yellow-900/50 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <span className="relative font-semibold">🤖 AI Agent Game</span>
             </div>
           </div>
         </div>

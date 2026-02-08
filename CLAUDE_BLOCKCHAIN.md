@@ -7,6 +7,11 @@
 We are building the on-chain infrastructure for **One Hour Dynasty**, a strategy game for AI agents.
 The goal is to support the **Agent+Token Track** for the Monad Hackathon.
 
+**Key Standards Used:**
+
+- **ERC-8004**: Trustless Agent Identity & Reputation (Monad native)
+- **x402**: HTTP 402 Micropayments for room entry
+
 ## Core Contracts
 
 ### 1. 🪙 Token Economy (`WuxiaToken.sol` + `ItemStore.sol`)
@@ -17,20 +22,27 @@ The goal is to support the **Agent+Token Track** for the Monad Hackathon.
   - Sell subscriptions (Send WUXIA to Treasury).
   - Sell cosmetics (Burn WUXIA).
 
-### 2. 🎮 Game Logic (`GameRegistry.sol`)
+### 2. 🤖 Agent Identity (ERC-8004 - USE EXISTING)
 
-- **Entry Fee:** Accepts **MON** only.
-- **Matchmaking:** Assigns agents to Game IDs.
-- **Prizes:** Distributes MON to winners.
-- **State:** Stores game results (winner, score hash).
+- **DO NOT CREATE custom AgentRegistry** - use Monad's ERC-8004!
+- **Identity Registry:** `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`
+- **Reputation Registry:** `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63`
+- See: https://docs.monad.xyz/guides/erc-8004-guide
 
-### 3. 🤖 Identity & Stats (`AgentRegistry.sol`)
+### 3. 💳 Room Payment (x402 - Backend Integration)
 
-- **Registration:** Map wallet address to Agent Name.
-- **Stats:** Track games played, wins, ELO rating.
-- **Uniqueness:** Prevent Sybil attacks (1 wallet = 1 agent).
+- **DO NOT CREATE payment contract** - use x402 HTTP protocol!
+- **Facilitator:** `https://x402-facilitator.molandak.org`
+- Backend wraps `/api/join-room` with `@x402/next`
+- See: https://docs.monad.xyz/guides/x402-guide
 
-### 4. 🏦 Staking (`Staking.sol`)
+### 4. 🎮 Game Results (`GameResultsRecorder.sol`)
+
+- Records game outcomes on-chain
+- Submits feedback to ERC-8004 Reputation Registry
+- Distributes MON prizes to winners
+
+### 5. 🏦 Staking (`Staking.sol`)
 
 - **Lock:** Users lock WUXIA for X duration.
 - **Benefits:**
@@ -42,7 +54,7 @@ The goal is to support the **Agent+Token Track** for the Monad Hackathon.
 
 - **Framework:** Hardhat
 - **Language:** Solidity ^0.8.20
-- **Network:** Monad Verify Testnet / Mainnet
+- **Network:** Monad Testnet (eip155:10143) / Mainnet
 - **Libraries:** OpenZeppelin (ERC20, Ownable, ReentrancyGuard)
 
 ## Directory Structure
@@ -50,17 +62,16 @@ The goal is to support the **Agent+Token Track** for the Monad Hackathon.
 ```
 packages/contracts/
 ├── contracts/
-│   ├── WuxiaToken.sol      # ERC-20
-│   ├── GameRegistry.sol    # Entry/Prizes
-│   ├── AgentRegistry.sol   # Identity/Stats
-│   ├── ItemStore.sol       # Shop (Boost/Subs)
-│   ├── Staking.sol         # Locking
-│   └── mocks/              # For testing
+│   ├── WuxiaToken.sol          # ERC-20 + Burn
+│   ├── ItemStore.sol           # Shop (Boost/Subs)
+│   ├── GameResultsRecorder.sol # Game outcomes + reputation
+│   ├── Staking.sol             # Priority queue
+│   └── mocks/                  # For testing
 ├── scripts/
 │   ├── deploy.ts
 │   └── verify.ts
 ├── test/
-│   └── GameRegistry.test.ts
+│   └── WuxiaToken.test.ts
 └── hardhat.config.ts
 ```
 
@@ -68,19 +79,19 @@ packages/contracts/
 
 1.  **Setup Hardhat Project:** Initialize in `packages/contracts`
 2.  **Create WuxiaToken:** Standard ERC-20 with burn function.
-3.  **Create AgentRegistry:** Basic mapping of address -> stats.
-4.  **Create GameRegistry:** Integrate with AgentRegistry, handle MON payments.
-5.  **Create ItemStore:** Handle WUXIA payments for items (burn/treasury).
-6.  **Create Staking:** Simple locking mechanism for priority status.
-7.  **Test:** Extensive unit tests for all flows.
-8.  **Deploy:** Script to deploy all contracts and link them.
+3.  **Create ItemStore:** Handle WUXIA payments for items (burn/treasury).
+4.  **Create GameResultsRecorder:** Record results, submit ERC-8004 feedback.
+5.  **Create Staking:** Simple locking mechanism for priority status.
+6.  **Test:** Extensive unit tests for all flows.
+7.  **Deploy:** Script to deploy all contracts.
 
 ## Key Design Decisions
 
-- **Gas Optimization:** Use `uint256` for packing where possible, but prioritize readability.
+- **No Custom AgentRegistry:** Use ERC-8004 Identity Registry instead.
+- **No Payment Contract:** Use x402 HTTP protocol instead.
+- **Gas Optimization:** Use `uint256` for packing where possible.
 - **Security:** Use `ReentrancyGuard` for all payment functions.
-- **Upgradability:** Consider UUPS for GameRegistry if rules might change (optional for Hackathon).
-- **Owner:** Use `Ownable` for admin functions (start game, set fees).
+- **Owner:** Use `Ownable` for admin functions.
 
 ## Environment Variables
 
@@ -88,9 +99,12 @@ packages/contracts/
 MONAD_RPC_URL="https://testnet-rpc.monad.xyz/"
 PRIVATE_KEY="0x..."
 ETHERSCAN_API_KEY="Monitor API Key"
+ERC8004_IDENTITY="0x8004A169FB4a3325136EB29fA0ceB6D2e539a432"
+ERC8004_REPUTATION="0x8004BAa17C55a88189AE136b182e5fdA19dE9b63"
 ```
 
 ## Reference Docs
 
 - `../../docs/TOKENOMICS.md` - Token details
 - `../../docs/WHITEPAPER.md` - Game rules
+- `../../docs/ERC8004_X402_INTEGRATION.md` - Integration guide
