@@ -1,8 +1,8 @@
 # Task for Blockchain Agent: Smart Contracts
 
 Read these docs first:
-- `CLAUDE_BLOCKCHAIN.md` (Architecture)
-- `docs/TOKENOMICS.md` (Token details)  
+- `docs/agents/BLOCKCHAIN.md` (Architecture)
+- `docs/TOKENOMICS.md` (Token details)
 - `docs/ERC8004_X402_INTEGRATION.md` (Integration guide)
 
 ## Phase 1: Setup

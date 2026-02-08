@@ -1,7 +1,7 @@
 # Task for Backend Agent: x402 Payment & Game API
 
 Read these docs first:
-- `CLAUDE_BACKEND.md` (Architecture)
+- `docs/agents/BACKEND.md` (Architecture)
 - `docs/ERC8004_X402_INTEGRATION.md` (Payment flow)
 - `docs/LOBBY_SYSTEM.md` (Room/matchmaking)
 
