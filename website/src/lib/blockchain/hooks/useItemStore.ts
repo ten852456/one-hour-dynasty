@@ -2,7 +2,7 @@
 
 import { useReadContract, useWriteContract } from 'wagmi'
 import { parseUnits, formatUnits } from 'viem'
-import { config, CONTRACTS } from '../config'
+import { config, CONTRACTS, TOKEN_DECIMALS, getGasLimit, parseTransactionError } from '../config'
 import ItemStoreAbi from '../abis/ItemStore.json'
 import { BoostType, SubscriptionTier } from '../types'
 
@@ -78,24 +78,40 @@ export const SUBSCRIPTIONS: Record<SubscriptionTier, SubscriptionBase> = {
 }
 
 /**
+ * Item store operation result type
+ */
+export interface ItemStoreOperationResult {
+  hash?: string
+  success: boolean
+  error?: string
+}
+
+/**
  * Hook for ItemStore operations (boosts and subscriptions)
+ * Enhanced with proper error handling
  */
 export function useItemStore(address?: string) {
   // Read boost prices
-  const { data: boostPrices, refetch: refetchBoostPrices } = useReadContract({
+  const { data: boostPrices, refetch: refetchBoostPrices, isLoading: isLoadingBoostPrices } = useReadContract({
     address: CONTRACTS.ITEM_STORE,
     abi: ItemStoreAbi.abi,
     functionName: 'boostPrices',
     config,
-  }) as { data: readonly bigint[] | undefined; refetch: () => void }
+    query: {
+      staleTime: 60_000,
+    },
+  })
 
   // Read subscription prices
-  const { data: subscriptionPrices, refetch: refetchSubscriptionPrices } = useReadContract({
+  const { data: subscriptionPrices, refetch: refetchSubscriptionPrices, isLoading: isLoadingSubscriptionPrices } = useReadContract({
     address: CONTRACTS.ITEM_STORE,
     abi: ItemStoreAbi.abi,
     functionName: 'subscriptionPrices',
     config,
-  }) as { data: readonly bigint[] | undefined; refetch: () => void }
+    query: {
+      staleTime: 60_000,
+    },
+  })
 
   // Check subscription status
   const { data: hasActiveSubscription, refetch: refetchSubscription } = useReadContract({
@@ -106,8 +122,9 @@ export function useItemStore(address?: string) {
     config,
     query: {
       enabled: !!address,
+      staleTime: 30_000,
     },
-  }) as { data: boolean | undefined; refetch: () => void }
+  })
 
   // Get subscription time remaining
   const { data: subscriptionTimeRemaining } = useReadContract({
@@ -118,8 +135,9 @@ export function useItemStore(address?: string) {
     config,
     query: {
       enabled: !!address,
+      staleTime: 30_000,
     },
-  }) as { data: bigint | undefined }
+  })
 
   // Get subscription expiry
   const { data: subscriptionExpiry } = useReadContract({
@@ -130,8 +148,9 @@ export function useItemStore(address?: string) {
     config,
     query: {
       enabled: !!address,
+      staleTime: 30_000,
     },
-  }) as { data: bigint | undefined }
+  })
 
   // Write operations
   const { data: hash, writeContract: _writeContract, isPending, error } = useWriteContract({ config })
@@ -139,27 +158,65 @@ export function useItemStore(address?: string) {
   /**
    * Buy a boost
    */
-  const buyBoost = async (boostType: BoostType) => {
-    if (!address) throw new Error('No address connected')
-    return _writeContract({
-      address: CONTRACTS.ITEM_STORE,
-      abi: ItemStoreAbi.abi,
-      functionName: 'buyBoost',
-      args: [boostType],
-    })
+  const buyBoost = async (boostType: BoostType): Promise<ItemStoreOperationResult> => {
+    try {
+      if (!address) throw new Error('No address connected')
+
+      const txHash = await _writeContract({
+        address: CONTRACTS.ITEM_STORE,
+        abi: ItemStoreAbi.abi,
+        functionName: 'buyBoost',
+        args: [boostType],
+        gas: getGasLimit('BOOST_PURCHASE'),
+      })
+
+      // Refetch prices after purchase
+      await refetchBoostPrices()
+
+      return { hash: txHash, success: true }
+    } catch (err) {
+      const parsedError = parseTransactionError(err)
+      return { success: false, error: parsedError.message }
+    }
   }
 
   /**
    * Buy a subscription
    */
-  const buySubscription = async (tier: SubscriptionTier) => {
-    if (!address) throw new Error('No address connected')
-    return _writeContract({
-      address: CONTRACTS.ITEM_STORE,
-      abi: ItemStoreAbi.abi,
-      functionName: 'buySubscription',
-      args: [tier],
-    })
+  const buySubscription = async (tier: SubscriptionTier): Promise<ItemStoreOperationResult> => {
+    try {
+      if (!address) throw new Error('No address connected')
+
+      const txHash = await _writeContract({
+        address: CONTRACTS.ITEM_STORE,
+        abi: ItemStoreAbi.abi,
+        functionName: 'buySubscription',
+        args: [tier],
+        gas: getGasLimit('SUBSCRIPTION_PURCHASE'),
+      })
+
+      // Store the purchased tier in localStorage for later retrieval
+      // TODO: This is a workaround. The contract should store the tier.
+      // Consider adding a getUserTier() function to the contract.
+      try {
+        const userTiers = JSON.parse(localStorage.getItem('subscriptionTiers') || '{}')
+        userTiers[address.toLowerCase()] = {
+          tier,
+          timestamp: Date.now(),
+        }
+        localStorage.setItem('subscriptionTiers', JSON.stringify(userTiers))
+      } catch (e) {
+        console.warn('Failed to store subscription tier:', e)
+      }
+
+      // Refetch subscription info after purchase
+      await refetchSubscription()
+
+      return { hash: txHash, success: true }
+    } catch (err) {
+      const parsedError = parseTransactionError(err)
+      return { success: false, error: parsedError.message }
+    }
   }
 
   /**
@@ -167,15 +224,17 @@ export function useItemStore(address?: string) {
    */
   const getAllBoosts = (): Boost[] => {
     if (!boostPrices || boostPrices.length === 0) return []
-    return Object.values(BoostType).filter((k): k is BoostType => typeof k === 'number').map((type) => {
-      const price = boostPrices[type] || 0n
-      return {
-        type,
-        ...BOOSTS[type],
-        price,
-        priceFormatted: `${Number(formatUnits(price, 18)).toFixed(2)} WUXIA`,
-      }
-    })
+    return Object.values(BoostType)
+      .filter((k): k is BoostType => typeof k === 'number')
+      .map((type) => {
+        const price = boostPrices[type] || 0n
+        return {
+          type,
+          ...BOOSTS[type],
+          price,
+          priceFormatted: `${Number(formatUnits(price, TOKEN_DECIMALS)).toFixed(2)} WUXIA`,
+        }
+      })
   }
 
   /**
@@ -191,9 +250,33 @@ export function useItemStore(address?: string) {
           tier,
           ...SUBSCRIPTIONS[tier],
           price,
-          priceFormatted: `${Number(formatUnits(price, 18)).toFixed(2)} WUXIA`,
+          priceFormatted: `${Number(formatUnits(price, TOKEN_DECIMALS)).toFixed(2)} WUXIA`,
         }
       })
+  }
+
+  /**
+   * Get user's subscription tier from localStorage
+   * This is a workaround until the contract is updated to store the tier
+   */
+  const getUserTier = (): SubscriptionTier => {
+    if (!address) return SubscriptionTier.BRONZE
+
+    try {
+      const userTiers = JSON.parse(localStorage.getItem('subscriptionTiers') || '{}')
+      const stored = userTiers[address.toLowerCase()]
+      if (stored && stored.timestamp) {
+        // Check if the stored tier is still valid (within the subscription period)
+        const expiryTime = Number(subscriptionExpiry || 0n) * 1000
+        if (Date.now() < expiryTime) {
+          return stored.tier
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to retrieve subscription tier:', e)
+    }
+
+    return SubscriptionTier.BRONZE
   }
 
   /**
@@ -205,12 +288,8 @@ export function useItemStore(address?: string) {
     const timeRemaining = subscriptionTimeRemaining
     const isActive = hasActiveSubscription ?? false
 
-    // Determine tier from expiry (approximate logic)
-    let tier = SubscriptionTier.BRONZE
-    if (isActive && expiry > 0n) {
-      // In a real app, you'd store the tier or query it differently
-      tier = SubscriptionTier.BRONZE // Default
-    }
+    // Get tier from localStorage (workaround)
+    const tier = getUserTier()
 
     return {
       tier,
@@ -236,6 +315,11 @@ export function useItemStore(address?: string) {
     hasActiveSubscription: hasActiveSubscription ?? false,
     subscriptionTimeRemaining: subscriptionTimeRemaining ?? 0n,
     subscriptionExpiry: subscriptionExpiry ?? 0n,
+
+    // Loading states
+    isLoading: isLoadingBoostPrices || isLoadingSubscriptionPrices,
+    isLoadingBoostPrices,
+    isLoadingSubscriptionPrices,
 
     // Utilities
     refetchBoostPrices,

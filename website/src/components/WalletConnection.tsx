@@ -6,6 +6,7 @@ import { useState } from 'react'
 /**
  * Wallet Connection Component - Wuxia Themed
  * Displays connect button, address, balance, and chain info
+ * Enhanced with network switching functionality
  */
 export function WalletConnection() {
   const {
@@ -15,11 +16,23 @@ export function WalletConnection() {
     isPending,
     balanceFormatted,
     isCorrectChain,
+    isSwitchingChain,
     connectWallet,
     disconnectWallet,
+    switchToMonad,
   } = useWalletConnection()
 
   const [showWalletMenu, setShowWalletMenu] = useState(false)
+  const [switchError, setSwitchError] = useState<string | null>(null)
+
+  const handleSwitchNetwork = async () => {
+    setSwitchError(null)
+    try {
+      await switchToMonad()
+    } catch (error) {
+      setSwitchError(error instanceof Error ? error.message : 'Failed to switch network')
+    }
+  }
 
   if (isConnected) {
     return (
@@ -42,15 +55,25 @@ export function WalletConnection() {
               onClick={() => setShowWalletMenu(false)}
             />
             <div className="absolute right-0 mt-2 w-80 bg-gradient-to-br from-red-950/50 to-black border-2 border-red-900/50 rounded-lg shadow-2xl shadow-red-900/50 z-20 p-4 backdrop-blur-sm">
-              {/* Network Warning */}
+              {/* Network Warning with Switch Button */}
               {!isCorrectChain && (
                 <div className="mb-4 p-3 bg-yellow-500/20 border border-yellow-500/50 rounded-lg">
                   <p className="text-yellow-400 text-sm font-medium drop-shadow-[0_0_4px_rgba(250,204,21,0.6)]">
                     ⚠️ Wrong Realm
                   </p>
-                  <p className="text-yellow-400/80 text-xs mt-1">
+                  <p className="text-yellow-400/80 text-xs mt-1 mb-3">
                     Please switch to Monad Testnet
                   </p>
+                  <button
+                    onClick={handleSwitchNetwork}
+                    disabled={isSwitchingChain}
+                    className="w-full px-3 py-2 bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 disabled:from-gray-700 disabled:to-gray-800 text-white rounded text-sm font-medium transition-all hover:scale-105 disabled:scale-100"
+                  >
+                    {isSwitchingChain ? 'Switching...' : 'Switch Network'}
+                  </button>
+                  {switchError && (
+                    <p className="text-red-400 text-xs mt-2">{switchError}</p>
+                  )}
                 </div>
               )}
 

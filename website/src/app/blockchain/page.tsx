@@ -5,11 +5,12 @@ import { useWuxiaToken } from '@/lib/blockchain/hooks/useWuxiaToken'
 import { useItemStore } from '@/lib/blockchain/hooks/useItemStore'
 import { useStaking } from '@/lib/blockchain/hooks/useStaking'
 import { BoostType, SubscriptionTier } from '@/lib/blockchain/types'
-import { useState } from 'react'
+import { useState, useMemo, useCallback } from 'react'
+import { STAKING_LIMITS } from '@/lib/blockchain/config'
 
 export default function BlockchainPage() {
   const { address, isConnected } = useWalletConnection()
-  const { balance, totalSupplyFormatted, balanceFormatted } = useWuxiaToken(address)
+  const { balance, totalSupplyFormatted, balanceFormatted, isLoading: isLoadingToken } = useWuxiaToken(address)
   const {
     boosts,
     subscriptions,
@@ -17,11 +18,24 @@ export default function BlockchainPage() {
     buySubscription,
     subscriptionInfo,
     isPending: itemStorePending,
+    isLoading: isLoadingItemStore,
   } = useItemStore(address)
-  const { stakeInfo, stakingTiers, stake, unstake, canUnstake, isPending: stakingPending } = useStaking(address)
+  const {
+    stakeInfo,
+    stakingTiers,
+    stake,
+    unstake,
+    canUnstake,
+    isPending: stakingPending,
+    validateStakeAmount,
+    isLoading: isLoadingStaking,
+  } = useStaking(address)
 
   const [selectedStakeAmount, setSelectedStakeAmount] = useState('1000')
   const [selectedLockDuration, setSelectedLockDuration] = useState('0')
+  const [stakeError, setStakeError] = useState<string | null>(null)
+  const [txError, setTxError] = useState<string | null>(null)
+  const [txSuccess, setTxSuccess] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'enhancements' | 'memberships' | 'offerings'>('overview')
 
   // Quick action to switch tabs
@@ -30,10 +44,105 @@ export default function BlockchainPage() {
   const goToOfferings = () => setActiveTab('offerings')
 
   // Auto-fill stake amount from tier (raw number without commas)
-  const selectTier = (amountRaw: string) => {
+  const selectTier = useCallback((amountRaw: string) => {
     setSelectedStakeAmount(amountRaw)
     setActiveTab('offerings')
-  }
+  }, [])
+
+  // Validate stake amount on change
+  const handleStakeAmountChange = useCallback((value: string) => {
+    setSelectedStakeAmount(value)
+    setStakeError(null)
+
+    const numValue = Number(value)
+    if (value && !isNaN(numValue)) {
+      const validation = validateStakeAmount(numValue)
+      if (!validation.valid) {
+        setStakeError(validation.error || null)
+      }
+    }
+  }, [validateStakeAmount])
+
+  // Handle stake transaction with error handling
+  const handleStake = useCallback(async () => {
+    setTxError(null)
+    setTxSuccess(null)
+
+    const amount = Number(selectedStakeAmount)
+    const validation = validateStakeAmount(amount)
+
+    if (!validation.valid) {
+      setStakeError(validation.error || null)
+      return
+    }
+
+    const result = await stake(amount, Number(selectedLockDuration) * 24 * 60 * 60)
+
+    if (result.success) {
+      setTxSuccess('Staking transaction submitted!')
+      setSelectedStakeAmount('1000')
+      setSelectedLockDuration('0')
+    } else {
+      setTxError(result.error || 'Transaction failed')
+    }
+  }, [selectedStakeAmount, selectedLockDuration, stake, validateStakeAmount])
+
+  // Handle buy boost with error handling
+  const handleBuyBoost = useCallback(async (boostType: BoostType) => {
+    setTxError(null)
+    setTxSuccess(null)
+
+    const result = await buyBoost(boostType)
+
+    if (result.success) {
+      setTxSuccess('Boost purchased successfully!')
+    } else {
+      setTxError(result.error || 'Transaction failed')
+    }
+  }, [buyBoost])
+
+  // Handle buy subscription with error handling
+  const handleBuySubscription = useCallback(async (tier: SubscriptionTier) => {
+    setTxError(null)
+    setTxSuccess(null)
+
+    const result = await buySubscription(tier)
+
+    if (result.success) {
+      setTxSuccess('Subscription purchased successfully!')
+    } else {
+      setTxError(result.error || 'Transaction failed')
+    }
+  }, [buySubscription])
+
+  // Handle unstake with error handling
+  const handleUnstake = useCallback(async () => {
+    setTxError(null)
+    setTxSuccess(null)
+
+    const result = await unstake()
+
+    if (result.success) {
+      setTxSuccess('Unstake transaction submitted!')
+    } else {
+      setTxError(result.error || 'Transaction failed')
+    }
+  }, [unstake])
+
+  // Optimize animation positions with useMemo
+  const animationParticles = useMemo(() => {
+    return [...Array(15)].map((_, i) => ({
+      id: i,
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      animationDelay: `${Math.random() * 5}s`,
+      animationDuration: `${10 + Math.random() * 10}s`,
+    }))
+  }, [])
+
+  // Loading state
+  const isLoading = isLoadingToken || isLoadingItemStore || isLoadingStaking
+  const isTxPending = itemStorePending || stakingPending
 
   if (!isConnected) {
     return (
@@ -41,15 +150,15 @@ export default function BlockchainPage() {
         {/* Animated Background */}
         <div className="fixed inset-0 pointer-events-none">
           <div className="absolute inset-0 overflow-hidden">
-            {[...Array(15)].map((_, i) => (
+            {animationParticles.map((particle) => (
               <div
-                key={i}
+                key={particle.id}
                 className="absolute w-1 h-1 bg-yellow-500/20 rounded-full animate-float"
                 style={{
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                  animationDelay: `${Math.random() * 5}s`,
-                  animationDuration: `${10 + Math.random() * 10}s`,
+                  left: particle.left,
+                  top: particle.top,
+                  animationDelay: particle.animationDelay,
+                  animationDuration: particle.animationDuration,
                 }}
               />
             ))}
@@ -97,15 +206,15 @@ export default function BlockchainPage() {
       {/* Animated Background */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute inset-0 overflow-hidden">
-          {[...Array(15)].map((_, i) => (
+          {animationParticles.map((particle) => (
             <div
-              key={i}
+              key={particle.id}
               className="absolute w-1 h-1 bg-yellow-500/20 rounded-full animate-float"
               style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 5}s`,
-                animationDuration: `${10 + Math.random() * 10}s`,
+                left: particle.left,
+                top: particle.top,
+                animationDelay: particle.animationDelay,
+                animationDuration: particle.animationDuration,
               }}
             />
           ))}
@@ -135,7 +244,7 @@ export default function BlockchainPage() {
             <div className="flex gap-3">
               <div className="bg-gradient-to-br from-red-950/50 to-black border border-red-900/50 rounded-lg px-4 py-2 text-center min-w-[120px]">
                 <p className="text-xs text-gray-400">Balance</p>
-                <p className="text-lg font-bold text-yellow-400">{balanceFormatted}</p>
+                <p className="text-lg font-bold text-yellow-400">{isLoading ? '...' : balanceFormatted}</p>
               </div>
               {subscriptionInfo?.isActive && (
                 <div className="bg-gradient-to-br from-red-950/50 to-black border border-green-900/50 rounded-lg px-4 py-2 text-center min-w-[120px]">
@@ -151,6 +260,18 @@ export default function BlockchainPage() {
               )}
             </div>
           </div>
+
+          {/* Transaction Error/Success Messages */}
+          {txError && (
+            <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
+              <p className="text-red-400 text-sm">{txError}</p>
+            </div>
+          )}
+          {txSuccess && (
+            <div className="mb-4 p-3 bg-green-500/20 border border-green-500/50 rounded-lg">
+              <p className="text-green-400 text-sm">{txSuccess}</p>
+            </div>
+          )}
 
           {/* Tabs */}
           <div className="flex gap-2 border-b border-red-900/30">
@@ -208,7 +329,7 @@ export default function BlockchainPage() {
                   <span className="text-2xl">💰</span>
                   <h3 className="text-sm font-semibold text-yellow-400">WUXIA Balance</h3>
                 </div>
-                <p className="text-2xl font-bold text-white">{balanceFormatted}</p>
+                <p className="text-2xl font-bold text-white">{isLoading ? '...' : balanceFormatted}</p>
                 <p className="text-xs text-gray-500 mt-1">Total: {totalSupplyFormatted}</p>
               </div>
 
@@ -280,8 +401,8 @@ export default function BlockchainPage() {
                   </div>
                   <p className="text-xs text-gray-400 mb-3">{boost.description}</p>
                   <button
-                    onClick={() => buyBoost(boost.type)}
-                    disabled={itemStorePending}
+                    onClick={() => handleBuyBoost(boost.type)}
+                    disabled={isTxPending}
                     className="w-full px-3 py-1.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-700 disabled:to-gray-800 text-white rounded text-sm font-medium transition-all hover:scale-105 disabled:scale-100"
                   >
                     {boost.priceFormatted}
@@ -315,8 +436,8 @@ export default function BlockchainPage() {
                     ))}
                   </ul>
                   <button
-                    onClick={() => buySubscription(sub.tier)}
-                    disabled={itemStorePending}
+                    onClick={() => handleBuySubscription(sub.tier)}
+                    disabled={isTxPending}
                     className="w-full px-3 py-2 bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 disabled:from-gray-700 disabled:to-gray-800 text-white rounded text-sm font-medium transition-all hover:scale-105 disabled:scale-100"
                   >
                     {sub.priceFormatted}
@@ -370,16 +491,23 @@ export default function BlockchainPage() {
                       <label className="block text-xs font-medium text-gray-400 mb-1">Amount (WUXIA)</label>
                       <input
                         type="number"
+                        min={STAKING_LIMITS.MIN_AMOUNT}
+                        max={STAKING_LIMITS.MAX_AMOUNT}
+                        step="any"
                         value={selectedStakeAmount}
-                        onChange={(e) => setSelectedStakeAmount(e.target.value)}
-                        className="w-full px-3 py-2 bg-gray-900/50 border border-red-900/50 rounded text-white text-sm focus:outline-none focus:border-yellow-500/60"
+                        onChange={(e) => handleStakeAmountChange(e.target.value)}
+                        className={`w-full px-3 py-2 bg-gray-900/50 border ${stakeError ? 'border-red-500' : 'border-red-900/50'} rounded text-white text-sm focus:outline-none focus:border-yellow-500/60`}
                         placeholder="1000"
                       />
+                      {stakeError && (
+                        <p className="text-red-400 text-xs mt-1">{stakeError}</p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-400 mb-1">Lock Duration (days)</label>
                       <input
                         type="number"
+                        min="0"
                         value={selectedLockDuration}
                         onChange={(e) => setSelectedLockDuration(e.target.value)}
                         className="w-full px-3 py-2 bg-gray-900/50 border border-red-900/50 rounded text-white text-sm focus:outline-none focus:border-yellow-500/60"
@@ -387,8 +515,8 @@ export default function BlockchainPage() {
                       />
                     </div>
                     <button
-                      onClick={() => stake(Number(selectedStakeAmount), Number(selectedLockDuration) * 24 * 60 * 60)}
-                      disabled={stakingPending}
+                      onClick={handleStake}
+                      disabled={isTxPending || !!stakeError}
                       className="w-full px-3 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-700 disabled:to-gray-800 text-white rounded text-sm font-medium transition-all hover:scale-105 disabled:scale-100"
                     >
                       Offer WUXIA
@@ -423,8 +551,8 @@ export default function BlockchainPage() {
                       <div className="pt-2 border-t border-green-900/30">
                         {stakeInfo.canUnstake ? (
                           <button
-                            onClick={unstake}
-                            disabled={stakingPending}
+                            onClick={handleUnstake}
+                            disabled={isTxPending}
                             className="w-full px-3 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-700 disabled:to-gray-800 text-white rounded text-sm font-medium transition-all hover:scale-105 disabled:scale-100"
                           >
                             Retrieve
@@ -448,7 +576,7 @@ export default function BlockchainPage() {
         </div>
 
         {/* Transaction Status */}
-        {(itemStorePending || stakingPending) && (
+        {isTxPending && (
           <div className="fixed bottom-4 right-4 bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-3 rounded-lg shadow-2xl shadow-red-900/50 flex items-center gap-3 border border-red-500/50">
             <svg
               className="animate-spin h-5 w-5"
