@@ -49,3 +49,4 @@ typechain/
 # Temporary files
 *.tmp
 *.temp
+deployments/*.json
