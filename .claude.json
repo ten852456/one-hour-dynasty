@@ -1,0 +1,769 @@
+{
+  "numStartups": 261,
+  "installMethod": "global",
+  "autoUpdates": true,
+  "preferredNotifChannel": "kitty",
+  "autoCompactEnabled": false,
+  "hasSeenTasksHint": true,
+  "tipsHistory": {
+    "ide-hotkey": 97,
+    "shift-enter": 248,
+    "memory-command": 256,
+    "theme-command": 248,
+    "status-line": 246,
+    "prompt-queue": 38,
+    "enter-to-steer-in-relatime": 248,
+    "todo-list": 248,
+    "# for memory": 248,
+    "install-github-app": 196,
+    "permissions": 256,
+    "drag-and-drop-images": 256,
+    "double-esc": 72,
+    "continue": 258,
+    "custom-commands": 246,
+    "shift-tab": 250,
+    "image-paste": 245,
+    "custom-agents": 246,
+    "plan-mode-for-complex-tasks": 242,
+    "git-worktrees": 190,
+    "double-esc-code-restore": 248,
+    "tab-toggle-thinking": 249,
+    "ultrathink-keyword": 249,
+    "stickers-command": 256,
+    "default-permission-mode-config": 261,
+    "install-slack-app": 261,
+    "rename-conversation": 261,
+    "agent-flag": 261
+  },
+  "promptQueueUseCount": 29,
+  "showExpandedTodos": true,
+  "cachedStatsigGates": {
+    "tengu_disable_bypass_permissions_mode": false,
+    "tengu_use_file_checkpoints": true,
+    "tengu_tool_pear": false,
+    "tengu_migrate_ignore_patterns": true,
+    "tengu_halloween": false,
+    "tengu_glob_with_rg": false,
+    "tengu_gha_plugin_code_review": false,
+    "tengu_web_tasks": true
+  },
+  "cachedDynamicConfigs": {
+    "tengu-top-of-feed-tip": {
+      "tip": "",
+      "color": ""
+    }
+  },
+  "firstStartTime": "2025-08-22T09:40:37.740Z",
+  "userID": "79362c7a2e60ff24f1efefbdc1ecbc54c60a3df36fd094ba5b89bf9f3151df30",
+  "projects": {
+    "C:\\Users\\NEXT Speed": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "projectOnboardingSeenCount": 2,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false
+    },
+    "C:\\Users\\NEXT Speed\\.claude-code-router": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "lastCost": 0,
+      "lastAPIDuration": 0,
+      "lastToolDuration": 0,
+      "lastDuration": 24609,
+      "lastLinesAdded": 0,
+      "lastLinesRemoved": 0,
+      "lastTotalInputTokens": 0,
+      "lastTotalOutputTokens": 0,
+      "lastTotalCacheCreationInputTokens": 0,
+      "lastTotalCacheReadInputTokens": 0,
+      "lastTotalWebSearchRequests": 0,
+      "lastSessionId": "81acfeff-8efb-47e0-a938-dcd4f4dbbe16"
+    },
+    "D:\\work\\bonchain\\pactda-sdk": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "hasCompletedProjectOnboarding": true,
+      "lastTotalWebSearchRequests": 0
+    },
+    "D:\\resource\\ai": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false
+    },
+    "D:\\resource\\ai\\psu-link-training": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {
+        "playwright": {
+          "type": "stdio",
+          "command": "npx",
+          "args": ["@playwright/mcp@latest"],
+          "env": {}
+        }
+      },
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "hasCompletedProjectOnboarding": true,
+      "lastTotalWebSearchRequests": 0
+    },
+    "D:\\work\\bonchain\\pactda-sign-poc": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {
+        "context7": {
+          "type": "http",
+          "url": "https://mcp.context7.com/mcp",
+          "headers": {
+            "CONTEXT7_API_KEY": "ctx7sk-d6d22aa5-f69a-452f-8ab0-d58bb8755356"
+          }
+        },
+        "playwright": {
+          "type": "stdio",
+          "command": "npx",
+          "args": ["@playwright/mcp@latest"],
+          "env": {}
+        },
+        "serena": {
+          "type": "stdio",
+          "command": "uvx",
+          "args": [
+            "--from",
+            "git+https://github.com/oraios/serena",
+            "serena",
+            "start-mcp-server",
+            "--context",
+            "ide-assistant",
+            "--project",
+            "D:/work/bonchain/pactda-sign-poc"
+          ],
+          "env": {}
+        }
+      },
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 1,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "hasCompletedProjectOnboarding": true,
+      "lastTotalWebSearchRequests": 0
+    },
+    "D:\\work\\wise\\wise-review": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {
+        "context7": {
+          "type": "http",
+          "url": "https://mcp.context7.com/mcp",
+          "headers": {
+            "CONTEXT7_API_KEY": "ctx7sk-1c16d428-3f51-4334-b314-c53fb9e628c0"
+          }
+        },
+        "serena": {
+          "type": "stdio",
+          "command": "uvx",
+          "args": [
+            "--from",
+            "git+https://github.com/oraios/serena",
+            "serena",
+            "start-mcp-server",
+            "--context",
+            "ide-assistant",
+            "--project",
+            "D:/work/wise/wise-review"
+          ],
+          "env": {}
+        },
+        "browsermcp": {
+          "command": "npx",
+          "args": ["@browsermcp/mcp@latest"]
+        }
+      },
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 4,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "lastTotalWebSearchRequests": 0
+    },
+    "D:\\work\\bonchain\\pactda-lending-poc": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {
+        "context7": {
+          "type": "http",
+          "url": "https://mcp.context7.com/mcp",
+          "headers": {
+            "CONTEXT7_API_KEY": "ctx7sk-1c16d428-3f51-4334-b314-c53fb9e628c0"
+          }
+        },
+        "serena": {
+          "type": "stdio",
+          "command": "uvx",
+          "args": [
+            "--from",
+            "git+https://github.com/oraios/serena",
+            "serena",
+            "start-mcp-server",
+            "--context",
+            "ide-assistant",
+            "--project",
+            "D:/work/bonchain/pactda-lending-poc"
+          ],
+          "env": {}
+        },
+        "browsermcp": {
+          "command": "npx",
+          "args": ["@browsermcp/mcp@latest"]
+        }
+      },
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 2,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "lastTotalWebSearchRequests": 0,
+      "hasCompletedProjectOnboarding": true
+    },
+    "D:\\playground\\my-project\\figma": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {
+        "figma-dev-mode-mcp-server": {
+          "type": "http",
+          "url": "http://10.10.0.19:3845/mcp"
+        }
+      },
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 3,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "lastTotalWebSearchRequests": 0
+    },
+    "D:\\work\\bonchain\\pactda-lending-eth-scaffold": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 1,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "lastCost": 0,
+      "lastAPIDuration": 0,
+      "lastToolDuration": 0,
+      "lastDuration": 45768,
+      "lastLinesAdded": 0,
+      "lastLinesRemoved": 0,
+      "lastTotalInputTokens": 0,
+      "lastTotalOutputTokens": 0,
+      "lastTotalCacheCreationInputTokens": 0,
+      "lastTotalCacheReadInputTokens": 0,
+      "lastTotalWebSearchRequests": 0,
+      "lastSessionId": "e04f7414-2184-4a1d-816c-58472912bd28"
+    },
+    "D:\\work\\bonchain\\pactda-lending-eth-scaffold\\pactda-lending": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {
+        "context7": {
+          "type": "http",
+          "url": "https://mcp.context7.com/mcp",
+          "headers": {
+            "CONTEXT7_API_KEY": "ctx7sk-1c16d428-3f51-4334-b314-c53fb9e628c0"
+          }
+        },
+        "serena": {
+          "type": "stdio",
+          "command": "uvx",
+          "args": [
+            "--from",
+            "git+https://github.com/oraios/serena",
+            "serena",
+            "start-mcp-server",
+            "--context",
+            "ide-assistant",
+            "--project",
+            "D:/work/bonchain/pactda-lending-eth-scaffold/pactda-lending"
+          ],
+          "env": {}
+        },
+        "browsermcp": {
+          "command": "npx",
+          "args": ["@browsermcp/mcp@latest"]
+        }
+      },
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 1,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "hasCompletedProjectOnboarding": true,
+      "lastTotalWebSearchRequests": 0,
+      "lastCost": 0.000268,
+      "lastAPIDuration": 7091,
+      "lastToolDuration": 0,
+      "lastDuration": 18546,
+      "lastLinesAdded": 0,
+      "lastLinesRemoved": 0,
+      "lastTotalInputTokens": 215,
+      "lastTotalOutputTokens": 24,
+      "lastTotalCacheCreationInputTokens": 0,
+      "lastTotalCacheReadInputTokens": 0,
+      "lastSessionId": "5150ebd3-6301-4d7b-944e-8e4c8a36a751"
+    },
+    "D:\\work\\bonchain\\monad\\temp\\scaffold-monad-hardhat": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 2,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "lastTotalWebSearchRequests": 0
+    },
+    "D:\\work\\bonchain\\monad\\hackathon\\monad-blitz-2025\\soulnad": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {
+        "context7": {
+          "type": "http",
+          "url": "https://mcp.context7.com/mcp",
+          "headers": {
+            "CONTEXT7_API_KEY": "ctx7sk-1c16d428-3f51-4334-b314-c53fb9e628c0"
+          }
+        },
+        "serena": {
+          "type": "stdio",
+          "command": "uvx",
+          "args": [
+            "--from",
+            "git+https://github.com/oraios/serena",
+            "serena",
+            "start-mcp-server",
+            "--context",
+            "ide-assistant",
+            "--project",
+            "D:/work/bonchain/monad/hackathon/monad-blitz-2025/soulnad"
+          ],
+          "env": {}
+        },
+        "browsermcp": {
+          "command": "npx",
+          "args": ["@browsermcp/mcp@latest"]
+        }
+      },
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 5,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "lastTotalWebSearchRequests": 0,
+      "hasCompletedProjectOnboarding": true
+    },
+    "D:\\work\\bmk\\d-hr": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {
+        "context7": {
+          "type": "http",
+          "url": "https://mcp.context7.com/mcp",
+          "headers": {
+            "CONTEXT7_API_KEY": "ctx7sk-1c16d428-3f51-4334-b314-c53fb9e628c0"
+          }
+        },
+        "serena": {
+          "type": "stdio",
+          "command": "uvx",
+          "args": [
+            "--from",
+            "git+https://github.com/oraios/serena",
+            "serena",
+            "start-mcp-server",
+            "--context",
+            "ide-assistant",
+            "--project",
+            "D:/work/bmk/d-hr"
+          ],
+          "env": {}
+        }
+      },
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 5,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "lastTotalWebSearchRequests": 0
+    },
+    "D:\\work\\LTO": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 2,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "lastTotalWebSearchRequests": 0
+    },
+    "D:\\work\\bmk\\gpf-procurement": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 2,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "lastTotalWebSearchRequests": 0
+    },
+    "D:\\work\\bmk\\jnr": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 6,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false
+    },
+    "D:\\work\\bmk\\presentation": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 2,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false
+    },
+    "d:\\work\\bmk\\presentation": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false
+    },
+    "D:\\work\\bonchain\\BuilderLens": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 5,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "lastCost": 0.13515955,
+      "lastAPIDuration": 34548,
+      "lastToolDuration": 82,
+      "lastDuration": 147462,
+      "lastLinesAdded": 0,
+      "lastLinesRemoved": 0,
+      "lastTotalInputTokens": 163,
+      "lastTotalOutputTokens": 1136,
+      "lastTotalCacheCreationInputTokens": 27895,
+      "lastTotalCacheReadInputTokens": 45321,
+      "lastTotalWebSearchRequests": 0,
+      "lastSessionId": "24e0ff75-6068-492b-9161-d7bb3e974ca4"
+    },
+    "D:\\work\\bmk\\ods": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 5,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "lastTotalWebSearchRequests": 0,
+      "lastCost": 9.26549575,
+      "lastAPIDuration": 1938424,
+      "lastToolDuration": 1331724,
+      "lastDuration": 10709892,
+      "lastLinesAdded": 643,
+      "lastLinesRemoved": 541,
+      "lastTotalInputTokens": 197878,
+      "lastTotalOutputTokens": 111860,
+      "lastTotalCacheCreationInputTokens": 1170705,
+      "lastTotalCacheReadInputTokens": 10053550,
+      "lastSessionId": "fad0ec5d-62d9-4554-b26c-e9b4f64b9398"
+    },
+    "D:\\work\\bonchain\\pactda-game": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {
+        "context7": {
+          "type": "http",
+          "url": "https://mcp.context7.com/mcp",
+          "headers": {
+            "CONTEXT7_API_KEY": "ctx7sk-1c16d428-3f51-4334-b314-c53fb9e628c0"
+          }
+        }
+      },
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 4,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "lastTotalWebSearchRequests": 0
+    },
+    "D:\\work\\bonchain\\sbt": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "ignorePatterns": [],
+      "projectOnboardingSeenCount": 3,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": []
+    },
+    "D:\\work\\hackathon\\walrus haulout 2025": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {
+        "context7": {
+          "type": "http",
+          "url": "https://mcp.context7.com/mcp",
+          "headers": {
+            "CONTEXT7_API_KEY": "ctx7sk-1c16d428-3f51-4334-b314-c53fb9e628c0"
+          }
+        }
+      },
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 6,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [],
+      "lastTotalWebSearchRequests": 0,
+      "lastCost": 0,
+      "lastAPIDuration": 0,
+      "lastToolDuration": 0,
+      "lastDuration": 16465,
+      "lastLinesAdded": 0,
+      "lastLinesRemoved": 0,
+      "lastTotalInputTokens": 0,
+      "lastTotalOutputTokens": 0,
+      "lastTotalCacheCreationInputTokens": 0,
+      "lastTotalCacheReadInputTokens": 0,
+      "lastSessionId": "7180d8c0-bf69-4c78-a273-a8070b969b27"
+    },
+    "D:\\work\\hackathon\\sagasaga-frontend": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 4,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [],
+      "lastTotalWebSearchRequests": 0
+    },
+    "D:\\work\\hackathon\\sagasaga-backend": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 4,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [],
+      "lastTotalWebSearchRequests": 0,
+      "lastCost": 0.6861617999999999,
+      "lastAPIDuration": 324348,
+      "lastToolDuration": 21122,
+      "lastDuration": 582215,
+      "lastLinesAdded": 29,
+      "lastLinesRemoved": 8,
+      "lastTotalInputTokens": 34397,
+      "lastTotalOutputTokens": 5818,
+      "lastTotalCacheCreationInputTokens": 0,
+      "lastTotalCacheReadInputTokens": 1728032,
+      "lastSessionId": "78824747-7384-4917-b846-978c84bca423"
+    },
+    "D:\\work\\bonchain": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "exampleFiles": [],
+      "lastCost": 0.0048725,
+      "lastAPIDuration": 7063,
+      "lastToolDuration": 0,
+      "lastDuration": 25688,
+      "lastLinesAdded": 0,
+      "lastLinesRemoved": 0,
+      "lastTotalInputTokens": 1215,
+      "lastTotalOutputTokens": 192,
+      "lastTotalCacheCreationInputTokens": 0,
+      "lastTotalCacheReadInputTokens": 755,
+      "lastTotalWebSearchRequests": 0,
+      "lastSessionId": "546f96c5-007a-4fe9-a4ec-9d8ce49a2261"
+    },
+    "D:/work/bonchain": {
+      "allowedTools": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": true,
+      "projectOnboardingSeenCount": 1,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "reactVulnerabilityCache": {
+        "detected": false,
+        "package": null,
+        "packageName": null,
+        "version": null,
+        "packageManager": null
+      }
+    }
+  },
+  "shiftEnterKeyBindingInstalled": true,
+  "hasCompletedOnboarding": true,
+  "lastOnboardingVersion": "2.0.36",
+  "hasOpusPlanDefault": false,
+  "subscriptionNoticeCount": 0,
+  "hasAvailableSubscription": false,
+  "changelogLastFetched": 1763896071703,
+  "hasIdeOnboardingBeenShown": {
+    "vscode": true
+  },
+  "isQualifiedForDataSharing": false,
+  "lastReleaseNotesSeen": "2.1.37",
+  "claudeCodeFirstTokenDate": "2025-07-11T07:15:32.263718Z",
+  "s1mAccessCache": {
+    "5a8113d3-6548-4a35-9c08-1a774f42ca1a": {
+      "hasAccess": false,
+      "hasAccessNotAsDefault": false,
+      "timestamp": 1761867113688
+    }
+  },
+  "fallbackAvailableWarningThreshold": 0.5,
+  "feedbackSurveyState": {
+    "lastShownTime": 1763734135463
+  },
+  "hasUsedBackslashReturn": true,
+  "lastPlanModeUse": 1763917127304,
+  "sonnet45MigrationComplete": true,
+  "sonnet45MigrationTimestamp": 1759241879816,
+  "anonymousId": "claudecode.v1.d49e27fa-d635-4dae-b7e4-4d9961963bfa",
+  "oauthAccount": {
+    "accountUuid": "591b3660-25ae-4e3e-afe3-e9769df742f3",
+    "emailAddress": "ten.palaboon@gmail.com",
+    "organizationUuid": "5a8113d3-6548-4a35-9c08-1a774f42ca1a",
+    "displayName": "Ten",
+    "organizationBillingType": "none",
+    "organizationRole": "admin",
+    "workspaceRole": null,
+    "organizationName": "ten.palaboon@gmail.com's Organization"
+  },
+  "githubActionSetupCount": 2,
+  "githubRepoPaths": {
+    "bonchain/saga": [
+      "D:\\work\\hackathon\\walrus haulout 2025",
+      "D:\\work\\hackathon\\sagasaga-backend",
+      "D:\\work\\hackathon\\sagasaga-frontend"
+    ]
+  },
+  "mcpServers": {
+    "zai-mcp-server": {
+      "type": "stdio",
+      "command": "cmd /c npx",
+      "args": ["-y", "@z_ai/mcp-server"],
+      "env": {
+        "Z_AI_MODE": "ZAI",
+        "Z_AI_API_KEY": "616fb274c23b4a8c9905c86e96335f1b.YCAHMJrp1u6oPugE"
+      }
+    },
+    "web-search-prime": {
+      "type": "http",
+      "url": "https://api.z.ai/api/mcp/web_search_prime/mcp",
+      "headers": {
+        "Authorization": "Bearer 616fb274c23b4a8c9905c86e96335f1b.YCAHMJrp1u6oPugE"
+      }
+    },
+    "web-reader": {
+      "type": "http",
+      "url": "https://api.z.ai/api/mcp/web_reader/mcp",
+      "headers": {
+        "Authorization": "Bearer 616fb274c23b4a8c9905c86e96335f1b.YCAHMJrp1u6oPugE"
+      }
+    },
+    "zread": {
+      "type": "http",
+      "url": "https://api.z.ai/api/mcp/zread/mcp",
+      "headers": {
+        "Authorization": "Bearer 616fb274c23b4a8c9905c86e96335f1b.YCAHMJrp1u6oPugE"
+      }
+    }
+  },
+  "opus45MigrationComplete": true,
+  "opusProMigrationComplete": true,
+  "thinkingMigrationComplete": true,
+  "cachedChromeExtensionInstalled": false,
+  "officialMarketplaceAutoInstallAttempted": true,
+  "officialMarketplaceAutoInstalled": true
+}
