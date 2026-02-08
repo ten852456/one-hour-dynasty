@@ -6,6 +6,22 @@ async function main() {
   const [deployer] = await ethers.getSigners();
   console.log("Deploying contracts with account:", deployer.address);
 
+  // Get network-specific reputation registry address
+  const network = await ethers.provider.getNetwork();
+  let reputationRegistry: string;
+
+  if (network.chainId === 10143n) {
+    // Monad Testnet
+    reputationRegistry = process.env.REPUTATION_REGISTRY || "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63";
+    console.log("Using Monad Testnet Reputation Registry");
+  } else if (network.chainId === 143n) {
+    // Monad Mainnet (when available)
+    reputationRegistry = process.env.REPUTATION_REGISTRY || "0x0000000000000000000000000000000000000000";
+    console.log("Using Monad Mainnet Reputation Registry (TODO: verify)");
+  } else {
+    throw new Error("Unsupported network. Please set REPUTATION_REGISTRY environment variable.");
+  }
+
   // Deploy WuxiaToken
   console.log("\n1. Deploying WuxiaToken...");
   const WuxiaToken = await ethers.getContractFactory("WuxiaToken");
@@ -32,7 +48,7 @@ async function main() {
 
   // Deploy GameResultsRecorder
   console.log("\n4. Deploying GameResultsRecorder...");
-  const reputationRegistry = "0x8004BAa17C55a88189AE136b182e5fdA19dE9b63";
+  console.log("   Reputation Registry:", reputationRegistry);
 
   const GameResultsRecorder = await ethers.getContractFactory("GameResultsRecorder");
   const recorder = await GameResultsRecorder.deploy(wuxiaAddress, reputationRegistry);
@@ -43,7 +59,7 @@ async function main() {
   // Deployment summary
   const chainId = (await ethers.provider.getNetwork()).chainId;
   console.log("\n=== Deployment Summary ===");
-  console.log("Network:", chainId);
+  console.log("Network:", chainId.toString());
   console.log("WuxiaToken:", wuxiaAddress);
   console.log("ItemStore:", itemStoreAddress);
   console.log("Staking:", stakingAddress);
@@ -64,6 +80,7 @@ async function main() {
     itemStore: itemStoreAddress,
     staking: stakingAddress,
     gameResultsRecorder: recorderAddress,
+    reputationRegistry: reputationRegistry,
     deployer: deployer.address,
     timestamp: new Date().toISOString(),
   };

@@ -4,9 +4,12 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./IERC8004ReputationRegistry.sol";
 
 contract GameResultsRecorder is Ownable, ReentrancyGuard {
+    using SafeERC20 for IERC20;
+
     IERC20 public prizeToken;
     IERC8004ReputationRegistry public reputationRegistry;
 
@@ -25,6 +28,8 @@ contract GameResultsRecorder is Ownable, ReentrancyGuard {
     event ReputationSubmitted(address indexed agent, uint256 tokenId, uint8 score);
 
     constructor(address _prizeToken, address _reputationRegistry) Ownable(msg.sender) {
+        require(_prizeToken != address(0), "Invalid prize token address");
+        require(_reputationRegistry != address(0), "Invalid reputation registry");
         prizeToken = IERC20(_prizeToken);
         reputationRegistry = IERC8004ReputationRegistry(_reputationRegistry);
     }
@@ -80,7 +85,7 @@ contract GameResultsRecorder is Ownable, ReentrancyGuard {
 
         for (uint256 i = 0; i < winners.length; i++) {
             require(amounts[i] > 0, "Amount must be > 0");
-            prizeToken.transfer(winners[i], amounts[i]);
+            prizeToken.safeTransfer(winners[i], amounts[i]);
 
             emit PrizeDistributed(gameId, winners[i], amounts[i]);
         }
@@ -91,8 +96,11 @@ contract GameResultsRecorder is Ownable, ReentrancyGuard {
         address[] calldata winners,
         uint256[] calldata amounts
     ) external onlyOwner {
+        require(games[gameId].recorded, "Game not recorded");
+        require(winners.length == amounts.length, "Array length mismatch");
+
         for (uint256 i = 0; i < winners.length; i++) {
-            prizeToken.transfer(winners[i], amounts[i]);
+            prizeToken.safeTransfer(winners[i], amounts[i]);
             emit PrizeDistributed(gameId, winners[i], amounts[i]);
         }
     }
@@ -114,6 +122,6 @@ contract GameResultsRecorder is Ownable, ReentrancyGuard {
     }
 
     function withdrawPrizeToken(address to, uint256 amount) external onlyOwner {
-        prizeToken.transfer(to, amount);
+        prizeToken.safeTransfer(to, amount);
     }
 }

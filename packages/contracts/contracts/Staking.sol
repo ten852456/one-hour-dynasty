@@ -27,6 +27,7 @@ contract Staking is Ownable, ReentrancyGuard {
     event Unstaked(address indexed user, uint256 amount);
 
     constructor(address _wuxiaToken) Ownable(msg.sender) {
+        require(_wuxiaToken != address(0), "Invalid token address");
         wuxiaToken = IERC20(_wuxiaToken);
     }
 

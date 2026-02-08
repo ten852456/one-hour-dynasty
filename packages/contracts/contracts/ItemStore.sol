@@ -36,6 +36,8 @@ contract ItemStore is Ownable, ReentrancyGuard {
     event SubscriptionPurchased(address indexed buyer, SubscriptionTier tier, uint256 expiry);
 
     constructor(address _wuxiaToken, address _treasury) Ownable(msg.sender) {
+        require(_wuxiaToken != address(0), "Invalid token address");
+        require(_treasury != address(0), "Invalid treasury address");
         wuxiaToken = IERC20(_wuxiaToken);
         wuxiaTokenBurnable = ERC20Burnable(_wuxiaToken);
         treasury = _treasury;
@@ -45,7 +47,6 @@ contract ItemStore is Ownable, ReentrancyGuard {
         uint256 price = boostPrices[uint256(boostType)];
         require(price > 0, "Invalid boost type");
 
-        // Transfer and burn tokens
         wuxiaToken.safeTransferFrom(msg.sender, address(this), price);
         wuxiaTokenBurnable.burn(price);
 
@@ -56,10 +57,8 @@ contract ItemStore is Ownable, ReentrancyGuard {
         uint256 price = subscriptionPrices[uint256(tier)];
         require(price > 0, "Invalid subscription tier");
 
-        // Transfer tokens to treasury
         wuxiaToken.safeTransferFrom(msg.sender, treasury, price);
 
-        // Set subscription expiry (30 days from now)
         subscriptionExpiry[msg.sender] = block.timestamp + 30 days;
 
         emit SubscriptionPurchased(msg.sender, tier, subscriptionExpiry[msg.sender]);
@@ -70,6 +69,7 @@ contract ItemStore is Ownable, ReentrancyGuard {
     }
 
     function setTreasury(address newTreasury) external onlyOwner {
+        require(newTreasury != address(0), "Invalid treasury address");
         treasury = newTreasury;
     }
 

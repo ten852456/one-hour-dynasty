@@ -19,6 +19,7 @@ contract WuxiaToken is ERC20, ERC20Burnable, Ownable {
      * @param initialOwner The address that will receive the initial token supply and become the owner
      */
     constructor(address initialOwner) ERC20("WUXIA", "WUXIA") Ownable(initialOwner) {
+        require(initialOwner != address(0), "Invalid owner address");
         _mint(initialOwner, TOTAL_SUPPLY);
     }
 
@@ -28,6 +29,7 @@ contract WuxiaToken is ERC20, ERC20Burnable, Ownable {
      * @param amount The amount of tokens to mint
      */
     function mint(address to, uint256 amount) public onlyOwner {
+        require(to != address(0), "Invalid mint address");
         _mint(to, amount);
     }
 }
