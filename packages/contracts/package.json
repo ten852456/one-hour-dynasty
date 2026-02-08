@@ -1,0 +1,47 @@
+{
+  "name": "@one-hour-dynasty/contracts",
+  "version": "0.1.0",
+  "description": "Smart contracts for One Hour Dynasty game on Monad",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:testnet": "hardhat run scripts/deploy.ts --network monad-testnet",
+    "verify:testnet": "hardhat run scripts/verify.ts --network monad-testnet",
+    "node": "hardhat node",
+    "clean": "hardhat clean"
+  },
+  "keywords": [
+    "wuxia",
+    "game",
+    "monad",
+    "blockchain",
+    "erc-8004",
+    "x402",
+    "hardhat"
+  ],
+  "author": "One Hour Dynasty Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.5",
+    "@typechain/hardhat": "^9.1.0",
+    "@types/chai": "^4.3.11",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.11.5",
+    "chai": "^4.4.1",
+    "hardhat": "^2.20.1",
+    "hardhat-gas-reporter": "^1.0.8",
+    "ts-node": "^10.9.2",
+    "typechain": "^8.3.2",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.1.0",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.10.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
