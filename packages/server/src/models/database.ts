@@ -63,14 +63,14 @@ pool.on('remove', () => {
  * @param params - Query parameters
  * @returns Query result
  */
-export async function query<T = any>(
+export async function query(
   text: string,
   params?: any[]
-): Promise<QueryResult<T>> {
+): Promise<QueryResult<any>> {
   const start = Date.now();
 
   try {
-    const res = await pool.query<T>(text, params);
+    const res = await pool.query(text, params);
     const duration = Date.now() - start;
 
     // Log slow queries in development

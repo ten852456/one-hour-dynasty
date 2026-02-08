@@ -2,8 +2,8 @@
  * Agent Model - CRUD operations for agents table
  */
 
-import { PoolClient } from 'pg';
-import { query, transaction, getClient } from './database.js';
+
+import { query } from './database.js';
 
 /**
  * Agent entity interface
@@ -51,7 +51,7 @@ export class AgentModel {
     `;
     const params = [input.wallet, input.name, input.erc8004_token_id || null];
 
-    const result = await query<Agent>(text, params);
+    const result = await query(text, params);
 
     if (result.rows.length === 0) {
       throw new Error('Failed to create agent');
@@ -69,7 +69,7 @@ export class AgentModel {
     const text = 'SELECT * FROM agents WHERE id = $1';
     const params = [id];
 
-    const result = await query<Agent>(text, params);
+    const result = await query(text, params);
 
     return result.rows[0] || null;
   }
@@ -83,7 +83,7 @@ export class AgentModel {
     const text = 'SELECT * FROM agents WHERE wallet = $1';
     const params = [wallet];
 
-    const result = await query<Agent>(text, params);
+    const result = await query(text, params);
 
     return result.rows[0] || null;
   }
@@ -97,7 +97,7 @@ export class AgentModel {
     const text = 'SELECT * FROM agents WHERE erc8004_token_id = $1';
     const params = [tokenId];
 
-    const result = await query<Agent>(text, params);
+    const result = await query(text, params);
 
     return result.rows[0] || null;
   }
@@ -133,7 +133,7 @@ export class AgentModel {
     `;
     const params = [limit, offset];
 
-    const result = await query<Agent>(text, params);
+    const result = await query(text, params);
 
     return result.rows;
   }
@@ -171,7 +171,7 @@ export class AgentModel {
     `;
     params.push(id);
 
-    const result = await query<Agent>(text, params);
+    const result = await query(text, params);
 
     if (result.rows.length === 0) {
       throw new Error('Agent not found');
@@ -200,7 +200,7 @@ export class AgentModel {
    */
   static async count(): Promise<number> {
     const text = 'SELECT COUNT(*) as count FROM agents';
-    const result = await query<{ count: string }>(text);
+    const result = await query(text);
 
     return parseInt(result.rows[0].count, 10);
   }
@@ -219,7 +219,7 @@ export class AgentModel {
     `;
     const params = [startDate, endDate];
 
-    const result = await query<Agent>(text, params);
+    const result = await query(text, params);
 
     return result.rows;
   }
@@ -239,7 +239,7 @@ export class AgentModel {
     `;
     const params = [`%${name}%`, limit];
 
-    const result = await query<Agent>(text, params);
+    const result = await query(text, params);
 
     return result.rows;
   }
