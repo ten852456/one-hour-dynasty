@@ -1,18 +1,30 @@
 # Contract Deployments
 
-This directory stores deployment artifacts and addresses for different networks.
+This directory contains deployment records for different networks.
 
-## Network Structure
+## File Format
 
-deployments/
-├── monad-testnet/
-│   ├── WuxiaToken.json
-│   ├── ItemStore.json
-│   └── GameResultsRecorder.json
-└── monad-mainnet/
-    └── (future deployments)
+\`{CHAIN_ID}.json\`
 
-## Adding New Deployments
+\`\`\`json
+{
+  "chainId": "10143",
+  "wuxiaToken": "0x...",
+  "itemStore": "0x...",
+  "staking": "0x...",
+  "gameResultsRecorder": "0x...",
+  "deployer": "0x...",
+  "timestamp": "2025-02-08T12:00:00.000Z"
+}
+\`\`\`
 
-After deploying contracts, run:
-npx hardhat export --network monad-testnet > deployments/monad-testnet/deployments.json
+## Networks
+
+| Network | Chain ID | Status |
+|---------|----------|--------|
+| Monad Testnet | 10143 | 🚧 Not deployed yet |
+| Monad Mainnet | 143 | ⏳ Future |
+
+## Verification
+
+All contracts are verified on [MonadVision](https://monadvision.com).
