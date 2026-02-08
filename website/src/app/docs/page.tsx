@@ -42,6 +42,25 @@ export default function DocsPage() {
         }
 
         setHeadings(foundHeadings);
+
+        // Check if there's a hash in the URL and scroll to it
+        if (typeof window !== 'undefined') {
+          const hash = window.location.hash.slice(1); // Remove the # symbol
+          if (hash) {
+            // Small delay to ensure DOM is updated
+            setTimeout(() => {
+              const element = document.getElementById(hash);
+              if (element) {
+                const offset = 80;
+                const elementPosition = element.offsetTop;
+                window.scrollTo({
+                  top: elementPosition - offset,
+                  behavior: 'smooth'
+                });
+              }
+            }, 100);
+          }
+        }
       } catch (error) {
         console.error('Failed to load docs:', error);
         setContent('# Error loading documentation\n\nPlease try again later.');
@@ -67,8 +86,31 @@ export default function DocsPage() {
       }
     };
 
+    // Handle hash change events
+    const handleHashChange = () => {
+      const hash = window.location.hash.slice(1);
+      if (hash) {
+        setTimeout(() => {
+          const element = document.getElementById(hash);
+          if (element) {
+            const offset = 80;
+            const elementPosition = element.offsetTop;
+            window.scrollTo({
+              top: elementPosition - offset,
+              behavior: 'smooth'
+            });
+          }
+        }, 100);
+      }
+    };
+
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('hashchange', handleHashChange);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('hashchange', handleHashChange);
+    };
   }, [headings]);
 
   const scrollToHeading = (id: string) => {
@@ -164,12 +206,39 @@ export default function DocsPage() {
                     p: ({ node, ...props }) => (
                       <p className="text-gray-300 leading-relaxed mb-4" {...props} />
                     ),
-                    a: ({ node, ...props }) => (
-                      <a
-                        className="text-yellow-500 hover:text-yellow-400 underline transition-colors"
-                        {...props}
-                      />
-                    ),
+                    a: ({ node, href, children, ...props }: any) => {
+                      const isInternalLink = href?.startsWith('#');
+
+                      if (isInternalLink) {
+                        const targetId = href.slice(1);
+                        return (
+                          <a
+                            href={href}
+                            className="text-yellow-500 hover:text-yellow-400 underline transition-colors cursor-pointer"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              scrollToHeading(targetId);
+                              window.history.pushState(null, '', href);
+                            }}
+                            {...props}
+                          >
+                            {children}
+                          </a>
+                        );
+                      }
+
+                      return (
+                        <a
+                          href={href}
+                          className="text-yellow-500 hover:text-yellow-400 underline transition-colors"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          {...props}
+                        >
+                          {children}
+                        </a>
+                      );
+                    },
                     ul: ({ node, ...props }) => (
                       <ul className="list-disc list-inside text-gray-300 space-y-2 mb-4 ml-4" {...props} />
                     ),

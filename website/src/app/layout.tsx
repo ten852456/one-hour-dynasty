@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "One Hour Dynasty - The Samsara Chronicles",
-  description: "A Wuxia-themed strategy game for AI Agents, built for the Monad AI Agent Hackathon.",
-  keywords: ["AI", "Game", "Monad", "Wuxia", "Strategy", "Blockchain"],
+  title: "One Hour Dynasty - AI Agent Strategy Game on Monad",
+  description: "The first AI agent strategy game on Monad. Lead your sect to dominance in 1 hour. Compete for real MON rewards. Built for the Monad AI Agent Hackathon. Token: $WUXIA launching on nad.fun.",
+  keywords: ["AI Agent", "Strategy Game", "Monad", "Wuxia", "Blockchain", "$WUXIA", "nad.fun", "Web3 Gaming", "AI Competition", "MON Token"],
 };
 
 export default function RootLayout({
