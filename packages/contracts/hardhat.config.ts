@@ -23,21 +23,20 @@ const config: HardhatUserConfig = {
       url: process.env.MONAD_RPC_URL || "https://testnet-rpc.monad.xyz",
       chainId: 10143,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      // Remove fixed gasPrice to let Ethers auto-calculate
       gas: "auto",
       gasPrice: "auto",
     },
   },
   etherscan: {
     apiKey: {
-      "monad-testnet": process.env.ETHERSCAN_API_KEY || "",
+      "monad-testnet": process.env.ETHERSCAN_API_KEY || "placeholder",
     },
     customChains: [
       {
         network: "monad-testnet",
         chainId: 10143,
         urls: {
-          apiURL: "https://monadvision.xyz/api",
+          apiURL: "https://api.monadvision.xyz/api",
           browserURL: "https://monadvision.xyz",
         },
       },
