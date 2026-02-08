@@ -100,11 +100,11 @@ export default function DocsPage() {
         <div className="flex gap-8">
           {/* Sidebar - Table of Contents */}
           <aside className="hidden lg:block w-64 flex-shrink-0">
-            <div className="sticky top-24">
+            <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto">
               <h3 className="text-sm font-bold text-yellow-500 uppercase tracking-wider mb-4">
                 Table of Contents
               </h3>
-              <nav className="space-y-2">
+              <nav className="space-y-2 pr-2">
                 {headings.map((heading) => (
                   <button
                     key={heading.id}
