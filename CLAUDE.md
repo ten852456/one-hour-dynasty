@@ -8,77 +8,67 @@ Wuxia strategy game for AI Agents | Monad AI Agent Hackathon
 
 ---
 
-## 🤖 Agent Work Distribution
+## 📁 Documentation Structure
 
-| Agent             | File                   | Responsibility                            |
-| ----------------- | ---------------------- | ----------------------------------------- |
-| 🌍 **World**      | `CLAUDE_WORLD.md`      | Game engine, world state, tick processing |
-| 🎨 **Frontend**   | `CLAUDE_FRONTEND.md`   | Next.js website (already created)         |
-| ⛓️ **Blockchain** | `CLAUDE_BLOCKCHAIN.md` | Solidity contracts, Monad deployment      |
-| 🖥️ **Backend**    | `CLAUDE_BACKEND.md`    | REST API, WebSocket, game orchestration   |
+```
+docs/
+├── agents/                   # Agent-specific architecture docs
+│   ├── BACKEND.md           # Backend API, x402 integration
+│   ├── BLOCKCHAIN.md        # Smart contracts, ERC-8004
+│   ├── FRONTEND.md          # Next.js website
+│   └── WORLD.md             # Game engine
+├── tasks/                    # Quick task files for agents
+│   ├── TASK_BACKEND.md      # Backend implementation task
+│   └── TASK_BLOCKCHAIN.md   # Blockchain implementation task
+├── WHITEPAPER.md            # Complete game rules
+├── TOKENOMICS.md            # $WUXIA token details
+├── ERC8004_X402_INTEGRATION.md  # Monad standards integration
+├── LOBBY_SYSTEM.md          # Room/matchmaking design
+└── LAUNCH_SIMULATION.md     # Token launch strategy
+```
 
 ---
 
-## Project Structure (Current)
+## 🤖 Agent Work Distribution
+
+| Agent             | Docs                        | Task                            | Focus               |
+| ----------------- | --------------------------- | ------------------------------- | ------------------- |
+| ⛓️ **Blockchain** | `docs/agents/BLOCKCHAIN.md` | `docs/tasks/TASK_BLOCKCHAIN.md` | Contracts, ERC-8004 |
+| 🖥️ **Backend**    | `docs/agents/BACKEND.md`    | `docs/tasks/TASK_BACKEND.md`    | API, x402 payments  |
+| 🌍 **World**      | `docs/agents/WORLD.md`      | -                               | Game engine         |
+| 🎨 **Frontend**   | `docs/agents/FRONTEND.md`   | -                               | Website, dashboard  |
+
+---
+
+## 🔑 Key Technologies
+
+| Feature        | Standard                | Status      |
+| -------------- | ----------------------- | ----------- |
+| Agent Identity | **ERC-8004** (optional) | ✅ Designed |
+| Room Payment   | **x402** (MON)          | ✅ Designed |
+| Token          | **$WUXIA** (ERC-20)     | ✅ Designed |
+
+---
+
+## Project Structure
 
 ```
 monad_wuxia/
-├── docs/
-│   ├── WHITEPAPER.md       # Game rules
-│   ├── ARCHITECTURE.md     # Sequence diagrams
-│   └── PHASE1_SCOPE.md     # Simplified scope
-├── website/                # 🎨 Frontend (EXISTING)
-│   ├── src/app/
-│   │   ├── page.tsx        # Homepage
-│   │   ├── docs/           # Docs viewer
-│   │   └── dashboard/      # Dashboard
-│   └── public/
+├── docs/                    # All documentation
+├── website/                 # 🎨 Frontend (EXISTING)
+│   └── src/app/
 ├── packages/
 │   ├── world/              # 🌍 Game engine (TO CREATE)
 │   ├── contracts/          # ⛓️ Smart contracts (TO CREATE)
-│   └── api/                # 🖥️ Backend (TO CREATE)
-├── CLAUDE_WORLD.md
-├── CLAUDE_FRONTEND.md
-├── CLAUDE_BLOCKCHAIN.md
-└── CLAUDE_BACKEND.md
-```
-
----
-
-## Phase 1 Scope (All Agents)
-
-| ✅ Build            | ❌ Skip        |
-| ------------------- | -------------- |
-| Basic game loop     | Combat system  |
-| Resource gathering  | Tech tree      |
-| Building structures | Market trading |
-| REST API            | MON payments   |
-| Static dashboard    | Live WebSocket |
-| Testnet deploy      | Mainnet        |
-
----
-
-## How to Start
-
-```
-# World Agent
-Read CLAUDE_WORLD.md and implement the game engine
-
-# Frontend Agent (website already exists)
-Read CLAUDE_FRONTEND.md and enhance the existing website
-
-# Blockchain Agent
-Read CLAUDE_BLOCKCHAIN.md and create smart contracts
-
-# Backend Agent
-Read CLAUDE_BACKEND.md and build the API server
+│   └── server/             # 🖥️ Backend (TO CREATE)
+└── CLAUDE.md               # This file
 ```
 
 ---
 
 ## Build Order
 
-1. **Frontend** ← Already started ✓
-2. **World** (game engine)
-3. **Blockchain** (can be parallel)
-4. **Backend** (depends on World)
+1. ⛓️ **Blockchain**: Token + ItemStore contracts
+2. 🖥️ **Backend**: x402 payment + API
+3. 🌍 **World**: Game engine
+4. 🎨 **Frontend**: Connect all pieces
