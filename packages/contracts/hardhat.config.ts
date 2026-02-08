@@ -23,7 +23,9 @@ const config: HardhatUserConfig = {
       url: process.env.MONAD_RPC_URL || "https://testnet-rpc.monad.xyz",
       chainId: 10143,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      gasPrice: 1000000000,
+      // Remove fixed gasPrice to let Ethers auto-calculate
+      gas: "auto",
+      gasPrice: "auto",
     },
   },
   etherscan: {
