@@ -1,5 +1,8 @@
-import Link from 'next/link';
-import Image from 'next/image';
+'use client'
+
+import Link from 'next/link'
+import Image from 'next/image'
+import { WalletConnection } from './WalletConnection'
 
 export default function Navigation() {
   return (
@@ -11,13 +14,13 @@ export default function Navigation() {
             <div className="relative w-10 h-10 flex-shrink-0">
               <Image
                 src="/logo.png"
-                alt="One Hour Dynasty Logo"
+                alt="One Hour Dynasty"
                 fill
                 className="object-contain group-hover:scale-110 transition-transform duration-300"
               />
             </div>
             <div className="flex flex-col">
-              <span className="text-lg font-bold text-yellow-500 group-hover:text-yellow-400 transition-colors">
+              <span className="text-lg font-bold bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-400 bg-clip-text text-transparent group-hover:drop-shadow-[0_0_8px_rgba(234,179,8,0.6)] transition-all">
                 One Hour Dynasty
               </span>
               <span className="text-xs text-gray-500">The Samsara Chronicles</span>
@@ -36,17 +39,24 @@ export default function Navigation() {
               href="/docs"
               className="px-4 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-yellow-500 hover:bg-red-950/30 transition-all"
             >
-              📜 Docs
+              Docs
             </Link>
             <Link
               href="/dashboard"
               className="px-4 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-yellow-500 hover:bg-red-950/30 transition-all"
             >
-              🎮 Dashboard
+              Dashboard
             </Link>
+            <Link
+              href="/blockchain"
+              className="px-4 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-yellow-500 hover:bg-red-950/30 transition-all"
+            >
+              Treasury
+            </Link>
+            <WalletConnection />
           </div>
         </div>
       </div>
     </nav>
-  );
+  )
 }
