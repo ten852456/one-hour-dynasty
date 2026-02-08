@@ -12,10 +12,7 @@ import "./Errors.sol";
  * @custom:security-contact security@onehourdynasty.com
  */
 contract WuxiaToken is ERC20, ERC20Burnable, Ownable, Errors {
-    /// @dev Total supply constant: 100,000,000 tokens (100 million)
-    uint256 public constant TOTAL_SUPPLY = 100_000_000 * 10**18;
-    
-    /// @dev Maximum supply cap to ensure fixed supply (no inflation beyond 100M)
+    /// @dev Maximum supply cap to ensure fixed supply (100,000,000 tokens)
     uint256 public constant MAX_SUPPLY = 100_000_000 * 10**18;
 
     /**
@@ -24,7 +21,7 @@ contract WuxiaToken is ERC20, ERC20Burnable, Ownable, Errors {
      */
     constructor(address initialOwner) ERC20("WUXIA", "WUXIA") Ownable(initialOwner) {
         if (initialOwner == address(0)) revert InvalidOwner();
-        _mint(initialOwner, TOTAL_SUPPLY);
+        _mint(initialOwner, MAX_SUPPLY);
     }
 
     /**

@@ -41,6 +41,7 @@ contract ItemStore is Ownable, ReentrancyGuard, Errors {
     event TreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
     event PriceUpdated(BoostType indexed boostType, uint256 oldPrice, uint256 newPrice);
     event SubscriptionPriceUpdated(SubscriptionTier indexed tier, uint256 oldPrice, uint256 newPrice);
+    event TokensWithdrawn(address indexed to, uint256 amount);
 
     constructor(address _wuxiaToken, address _treasury) Ownable(msg.sender) {
         if (_wuxiaToken == address(0)) revert InvalidToken();
@@ -78,6 +79,32 @@ contract ItemStore is Ownable, ReentrancyGuard, Errors {
         return subscriptionExpiry[user] > block.timestamp;
     }
 
+    /**
+     * @dev Get remaining subscription time for a user
+     * @param user The address to check
+     * @return Remaining time in seconds (0 if not subscribed)
+     */
+    function getSubscriptionTimeRemaining(address user) external view returns (uint256) {
+        if (subscriptionExpiry[user] <= block.timestamp) return 0;
+        return subscriptionExpiry[user] - block.timestamp;
+    }
+
+    /**
+     * @dev Get all boost prices at once
+     * @return Array of all 4 boost prices
+     */
+    function getAllBoostPrices() external view returns (uint256[4] memory) {
+        return boostPrices;
+    }
+
+    /**
+     * @dev Get all subscription prices at once
+     * @return Array of all 3 subscription prices
+     */
+    function getAllSubscriptionPrices() external view returns (uint256[3] memory) {
+        return subscriptionPrices;
+    }
+
     function setTreasury(address newTreasury) external onlyOwner {
         if (newTreasury == address(0)) revert InvalidTreasury();
         address oldTreasury = treasury;
@@ -101,5 +128,6 @@ contract ItemStore is Ownable, ReentrancyGuard, Errors {
 
     function withdrawTokens(address to, uint256 amount) external onlyOwner {
         wuxiaToken.safeTransfer(to, amount);
+        emit TokensWithdrawn(to, amount);
     }
 }

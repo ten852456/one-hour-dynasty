@@ -21,6 +21,13 @@ contract Errors {
     error GameAlreadyRecorded();
     error PrizesAlreadyDistributed();
 
+    // Agent validation errors
+    error TooManyAgents();
+    error DuplicateAgent();
+    error InvalidRank();
+    error RankExceedsAgents();
+    error InvalidScore();
+
     // Staking errors
     error NoStakeFound();
     error AlreadyStaked();

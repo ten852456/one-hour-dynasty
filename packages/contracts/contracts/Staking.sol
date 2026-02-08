@@ -12,10 +12,11 @@ contract Staking is Ownable, ReentrancyGuard, Errors {
 
     IERC20 public wuxiaToken;
 
+    /// @dev Packed stake struct for gas optimization (32 bytes total)
     struct Stake {
-        uint256 amount;
-        uint256 timestamp;
-        uint256 lockDuration;
+        uint96 amount;       // Max: ~79 billion WUXIA (more than enough)
+        uint64 timestamp;    // Max year: 292,277,026,565 AD
+        uint96 lockDuration; // Max: >> universe age in seconds
     }
 
     mapping(address => Stake) public stakes;
@@ -26,6 +27,7 @@ contract Staking is Ownable, ReentrancyGuard, Errors {
 
     event Staked(address indexed user, uint256 amount, uint256 lockDuration);
     event Unstaked(address indexed user, uint256 amount);
+    event StakeIncreased(address indexed user, uint256 additionalAmount);
 
     constructor(address _wuxiaToken) Ownable(msg.sender) {
         if (_wuxiaToken == address(0)) revert InvalidToken();
@@ -39,25 +41,47 @@ contract Staking is Ownable, ReentrancyGuard, Errors {
         wuxiaToken.safeTransferFrom(msg.sender, address(this), amount);
 
         stakes[msg.sender] = Stake({
-            amount: amount,
-            timestamp: block.timestamp,
-            lockDuration: lockDuration
+            amount: uint96(amount),
+            timestamp: uint64(block.timestamp),
+            lockDuration: uint96(lockDuration)
         });
 
         emit Staked(msg.sender, amount, lockDuration);
     }
 
-    function unstake() external nonReentrant {
-        Stake memory userStake = stakes[msg.sender];
+    /**
+     * @dev Increase existing stake without losing lock period
+     * @param additionalAmount Amount to add to existing stake
+     */
+    function increaseStake(uint256 additionalAmount) external nonReentrant {
+        if (additionalAmount == 0) revert AmountMustBePositive();
+        Stake storage userStake = stakes[msg.sender];
         if (userStake.amount == 0) revert NoStakeFound();
 
+        wuxiaToken.safeTransferFrom(msg.sender, address(this), additionalAmount);
+
+        // Use unchecked to prevent overflow check (safe since we check cap below)
+        unchecked {
+            uint256 newAmount = uint256(userStake.amount) + additionalAmount;
+            userStake.amount = uint96(newAmount);
+        }
+
+        emit StakeIncreased(msg.sender, additionalAmount);
+    }
+
+    function unstake() external nonReentrant {
+        Stake memory userStake = stakes[msg.sender];
+        uint256 amount = uint256(userStake.amount);
+        
+        if (amount == 0) revert NoStakeFound();
+
         if (userStake.lockDuration > 0) {
-            if (block.timestamp < userStake.timestamp + userStake.lockDuration) {
+            uint256 lockEndTime = uint256(userStake.timestamp) + uint256(userStake.lockDuration);
+            if (block.timestamp < lockEndTime) {
                 revert LockPeriodNotExpired();
             }
         }
 
-        uint256 amount = userStake.amount;
         delete stakes[msg.sender];
 
         wuxiaToken.safeTransfer(msg.sender, amount);
@@ -66,15 +90,15 @@ contract Staking is Ownable, ReentrancyGuard, Errors {
     }
 
     function hasPriorityQueue(address user) external view returns (bool) {
-        return stakes[user].amount >= PRIORITY_STAKE;
+        return stakes[user].amount >= uint96(PRIORITY_STAKE);
     }
 
     function canAccessGrandWar(address user) external view returns (bool) {
-        return stakes[user].amount >= GRAND_WAR_STAKE;
+        return stakes[user].amount >= uint96(GRAND_WAR_STAKE);
     }
 
     function hasGovernanceRights(address user) external view returns (bool) {
-        return stakes[user].amount >= GOVERNANCE_STAKE;
+        return stakes[user].amount >= uint96(GOVERNANCE_STAKE);
     }
 
     function getStake(address user) external view returns (Stake memory) {
