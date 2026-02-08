@@ -36,7 +36,7 @@ contract ItemStore is Ownable, ReentrancyGuard, Errors {
 
     mapping(address => uint256) public subscriptionExpiry;
 
-    event BoostPurchased(address indexed buyer, BoostType boostType);
+    event BoostPurchased(address indexed buyer, BoostType boostType, uint256 amount);
     event SubscriptionPurchased(address indexed buyer, SubscriptionTier tier, uint256 expiry);
     event TreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
     event PriceUpdated(BoostType indexed boostType, uint256 oldPrice, uint256 newPrice);
@@ -57,7 +57,7 @@ contract ItemStore is Ownable, ReentrancyGuard, Errors {
         wuxiaToken.safeTransferFrom(msg.sender, address(this), price);
         wuxiaTokenBurnable.burn(price);
 
-        emit BoostPurchased(msg.sender, boostType);
+        emit BoostPurchased(msg.sender, boostType, price);
     }
 
     function buySubscription(SubscriptionTier tier) external nonReentrant {
@@ -66,7 +66,10 @@ contract ItemStore is Ownable, ReentrancyGuard, Errors {
 
         wuxiaToken.safeTransferFrom(msg.sender, treasury, price);
 
-        subscriptionExpiry[msg.sender] = block.timestamp + 30 days;
+        // Extend from max(current expiry, now) to preserve remaining time
+        uint256 currentExpiry = subscriptionExpiry[msg.sender];
+        uint256 baseTime = currentExpiry > block.timestamp ? currentExpiry : block.timestamp;
+        subscriptionExpiry[msg.sender] = baseTime + 30 days;
 
         emit SubscriptionPurchased(msg.sender, tier, subscriptionExpiry[msg.sender]);
     }

@@ -34,6 +34,10 @@ describe("WuxiaToken", function () {
       expect(ownerBalance).to.equal(TOTAL_SUPPLY);
       expect(totalSupply).to.equal(ownerBalance);
     });
+
+    it("Should have MAX_SUPPLY constant set to 100M", async function () {
+      expect(await wuxiaToken.MAX_SUPPLY()).to.equal(TOTAL_SUPPLY);
+    });
   });
 
   describe("Burn Functionality", function () {
@@ -54,7 +58,10 @@ describe("WuxiaToken", function () {
   });
 
   describe("Mint Functionality", function () {
-    it("Test 4: Should allow owner to mint additional tokens", async function () {
+    it("Test 4: Should allow owner to mint additional tokens up to cap", async function () {
+      // First burn some tokens to create room under the cap
+      await wuxiaToken.burn(MINT_AMOUNT);
+      
       const initialTotalSupply = await wuxiaToken.totalSupply();
       const initialUserBalance = await wuxiaToken.balanceOf(user1.address);
 
@@ -65,6 +72,13 @@ describe("WuxiaToken", function () {
 
       expect(finalTotalSupply).to.equal(initialTotalSupply + MINT_AMOUNT);
       expect(finalUserBalance).to.equal(initialUserBalance + MINT_AMOUNT);
+    });
+
+    it("Should revert when minting exceeds MAX_SUPPLY cap", async function () {
+      // Total supply is already at 100M, can't mint more
+      await expect(
+        wuxiaToken.mint(user1.address, MINT_AMOUNT)
+      ).to.be.revertedWithCustomError(wuxiaToken, "SupplyCapExceeded");
     });
 
     it("Test 5: Should revert when non-owner tries to mint", async function () {

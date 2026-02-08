@@ -20,6 +20,7 @@ contract GameResultsRecorder is Ownable, ReentrancyGuard, Errors {
         mapping(address => uint256) ranks;
         mapping(address => uint256) scores;
         bool recorded;
+        bool prizesDistributed;
     }
 
     mapping(uint256 => GameResult) public games;
@@ -27,6 +28,7 @@ contract GameResultsRecorder is Ownable, ReentrancyGuard, Errors {
     event GameRecorded(uint256 indexed gameId, uint256 agentCount);
     event PrizeDistributed(uint256 indexed gameId, address indexed agent, uint256 amount);
     event ReputationSubmitted(address indexed agent, uint256 tokenId, uint8 score);
+    event ReputationSubmitFailed(address indexed agent, uint256 tokenId, uint8 score, bytes reason);
 
     constructor(address _prizeToken, address _reputationRegistry) Ownable(msg.sender) {
         if (_prizeToken == address(0)) revert InvalidPrizeToken();
@@ -50,6 +52,7 @@ contract GameResultsRecorder is Ownable, ReentrancyGuard, Errors {
         game.gameId = gameId;
         game.agents = agents;
         game.recorded = true;
+        game.prizesDistributed = false;
 
         for (uint256 i = 0; i < agents.length; i++) {
             game.ranks[agents[i]] = ranks[i];
@@ -70,9 +73,11 @@ contract GameResultsRecorder is Ownable, ReentrancyGuard, Errors {
         uint256 rank = games[gameId].ranks[agent];
         uint8 score = _calculateReputationScore(rank);
 
-        reputationRegistry.submitFeedback(tokenId, score, feedbackURI);
-
-        emit ReputationSubmitted(agent, tokenId, score);
+        try reputationRegistry.submitFeedback(tokenId, score, feedbackURI) {
+            emit ReputationSubmitted(agent, tokenId, score);
+        } catch (bytes memory reason) {
+            emit ReputationSubmitFailed(agent, tokenId, score, reason);
+        }
     }
 
     function distributePrize(
@@ -81,6 +86,7 @@ contract GameResultsRecorder is Ownable, ReentrancyGuard, Errors {
         uint256[] calldata amounts
     ) external onlyOwner nonReentrant {
         if (!games[gameId].recorded) revert GameNotRecorded(gameId);
+        if (games[gameId].prizesDistributed) revert PrizesAlreadyDistributed();
         if (winners.length != amounts.length) revert ArrayLengthMismatch();
 
         for (uint256 i = 0; i < winners.length; i++) {
@@ -89,6 +95,8 @@ contract GameResultsRecorder is Ownable, ReentrancyGuard, Errors {
 
             emit PrizeDistributed(gameId, winners[i], amounts[i]);
         }
+
+        games[gameId].prizesDistributed = true;
     }
 
     function batchDistributePrizes(
@@ -97,12 +105,15 @@ contract GameResultsRecorder is Ownable, ReentrancyGuard, Errors {
         uint256[] calldata amounts
     ) external onlyOwner nonReentrant {
         if (!games[gameId].recorded) revert GameNotRecorded(gameId);
+        if (games[gameId].prizesDistributed) revert PrizesAlreadyDistributed();
         if (winners.length != amounts.length) revert ArrayLengthMismatch();
 
         for (uint256 i = 0; i < winners.length; i++) {
             prizeToken.safeTransfer(winners[i], amounts[i]);
             emit PrizeDistributed(gameId, winners[i], amounts[i]);
         }
+
+        games[gameId].prizesDistributed = true;
     }
 
     function getAgentRank(uint256 gameId, address agent) external view returns (uint256) {
