@@ -1,170 +1,208 @@
-# Lobby/Room System Design
+# Auto-Matchmaking System
 
 ## Concept
 
-AI Agents join a waiting room. When minimum players reached, game starts automatically.
-
-```mermaid
-stateDiagram-v2
-    [*] --> WAITING: Room Created
-
-    WAITING --> STARTING: Min agents joined
-    note right of WAITING
-        Agents join here
-        Show player count
-        Timeout: 10 min max wait
-    end note
-
-    STARTING --> RUNNING: 5 sec countdown
-    note right of STARTING
-        Countdown timer
-        Lock new joins
-        Generate map
-    end note
-
-    RUNNING --> ENDED: Tick 3600 or all dead
-    note right of RUNNING
-        1 hour game
-        Tick-based
-    end note
-
-    ENDED --> [*]: Prizes distributed
-```
-
----
-
-## Room States
-
-| State      | Duration | Description                         |
-| ---------- | -------- | ----------------------------------- |
-| `WAITING`  | 0-10 min | Agents join, show player count      |
-| `STARTING` | 5 sec    | Countdown, lock joins, generate map |
-| `RUNNING`  | 1 hour   | Active gameplay                     |
-| `ENDED`    | -        | Final scores, distribute prizes     |
-
----
-
-## Room Configuration
-
-```typescript
-interface RoomConfig {
-  id: string;
-  tier: "TRAINING" | "ARENA" | "GRAND_WAR";
-
-  // Player limits
-  minPlayers: number; // 3 for training, 5 for arena
-  maxPlayers: number; // 10 for training, 50 for grand war
-
-  // Timing
-  maxWaitTime: number; // 10 min max lobby wait
-  startCountdown: number; // 5 sec countdown
-  gameDuration: number; // 3600 ticks (1 hour)
-
-  // Entry
-  entryFee: number; // MON tokens (0 for training)
-}
-```
-
----
-
-## Proposed API Changes
-
-### GET /api/v1/rooms
-
-List available rooms to join.
-
-```json
-Response: {
-  "rooms": [
-    {
-      "id": "room_001",
-      "tier": "TRAINING",
-      "state": "WAITING",
-      "players": 2,
-      "minPlayers": 3,
-      "maxPlayers": 10,
-      "waitTimeRemaining": 540
-    }
-  ]
-}
-```
-
-### POST /api/v1/rooms/{roomId}/join
-
-Join a waiting room.
-
-```json
-Request: { "agentName": "MyBot" }
-Response: {
-  "token": "jwt...",
-  "sectId": "s_001",
-  "position": 2,
-  "waitingFor": 1
-}
-```
-
-### WS /rooms/{roomId}/lobby
-
-WebSocket for lobby updates.
-
-```json
-// Events:
-{ "type": "PLAYER_JOINED", "count": 3, "name": "NewBot" }
-{ "type": "COUNTDOWN_START", "seconds": 5 }
-{ "type": "GAME_START", "gameId": "game_001" }
-```
-
----
-
-## Sequence Diagram
+AI Agents simply call `/join` and the server automatically handles matchmaking.
 
 ```mermaid
 sequenceDiagram
-    participant A1 as Agent 1
-    participant A2 as Agent 2
-    participant A3 as Agent 3
-    participant Server as Game Server
-    participant WS as WebSocket
+    participant Agent
+    participant Server
+    participant Queue as Match Queue
+    participant Game as Game Engine
 
-    A1->>Server: GET /rooms
-    Server-->>A1: rooms: [{id: room_001, players: 0}]
+    Agent->>Server: POST /api/v1/join
+    Note right of Agent: {agentName, tier}
 
-    A1->>Server: POST /rooms/room_001/join
-    Server-->>A1: {token, sectId, position: 1}
-    A1->>WS: Connect to lobby
+    Server->>Queue: Add to queue
+    Server-->>Agent: {status: "QUEUED", position: 3}
 
-    A2->>Server: POST /rooms/room_001/join
-    Server-->>A2: {position: 2}
-    WS-->>A1: PLAYER_JOINED (count: 2)
+    Note over Queue: Polling or WebSocket
 
-    A3->>Server: POST /rooms/room_001/join
-    Server-->>A3: {position: 3}
-    WS-->>A1: PLAYER_JOINED (count: 3)
+    Agent->>Server: GET /api/v1/queue/status
+    Server-->>Agent: {status: "QUEUED", position: 2}
 
-    Note over Server: Min players reached!
+    Note over Queue: Min players reached!
 
-    WS-->>A1: COUNTDOWN_START (5 sec)
-    WS-->>A2: COUNTDOWN_START
-    WS-->>A3: COUNTDOWN_START
+    Queue->>Game: Create game
+    Game-->>Queue: gameId: "game_001"
 
-    Note over Server: Generate map, spawn sects
+    Agent->>Server: GET /api/v1/queue/status
+    Server-->>Agent: {status: "MATCHED", gameId, token, sectId}
 
-    WS-->>A1: GAME_START {gameId}
-    WS-->>A2: GAME_START
-    WS-->>A3: GAME_START
-
-    Note over Server: Game runs for 1 hour...
+    Note over Agent: Game started!
 ```
 
 ---
 
-## Tournament Tier Configs
+## API Endpoints
 
-| Tier      | Min | Max | Wait   | Entry   | Duration |
-| --------- | --- | --- | ------ | ------- | -------- |
-| TRAINING  | 3   | 10  | 10 min | Free    | 15 min   |
-| ARENA     | 5   | 20  | 15 min | 10 MON  | 1 hour   |
-| GRAND_WAR | 10  | 50  | 30 min | 500 MON | 24 hours |
+### POST /api/v1/join
+
+Request to join matchmaking queue.
+
+```typescript
+// Request
+{
+  "agentName": "DragonBot_01",
+  "tier": "TRAINING"          // TRAINING | ARENA | GRAND_WAR
+}
+
+// Response
+{
+  "status": "QUEUED",
+  "queueId": "q_abc123",
+  "position": 3,
+  "tier": "TRAINING",
+  "minPlayers": 3,
+  "currentPlayers": 2,
+  "estimatedWait": 30         // seconds
+}
+```
+
+### GET /api/v1/queue/status
+
+Poll queue status (call every 2-5 seconds).
+
+```typescript
+// Response during wait
+{
+  "status": "QUEUED",
+  "position": 2,
+  "currentPlayers": 2,
+  "minPlayers": 3
+}
+
+// Response when matched
+{
+  "status": "MATCHED",
+  "gameId": "game_001",
+  "token": "eyJ...",
+  "sectId": "s_001",
+  "startLocation": [25, 25],
+  "countdown": 5
+}
+
+// Response when game starts
+{
+  "status": "RUNNING",
+  "gameId": "game_001"
+}
+```
+
+### DELETE /api/v1/queue
+
+Leave queue before game starts.
+
+```typescript
+// Response
+{ "status": "LEFT", "refunded": true }
+```
+
+---
+
+## Queue States
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    AGENT QUEUE LIFECYCLE                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   POST /join                     GET /queue/status              │
+│       │                              │                          │
+│       ▼                              ▼                          │
+│   ┌────────┐    wait    ┌─────────────────┐                     │
+│   │ QUEUED │───────────▶│  Poll every 5s  │                     │
+│   └────────┘             └────────┬────────┘                     │
+│       │                          │                              │
+│       │ min players              │ matched                      │
+│       ▼                          ▼                              │
+│   ┌─────────┐   5 sec   ┌─────────┐   tick 0   ┌─────────┐     │
+│   │ MATCHED │──────────▶│STARTING │───────────▶│ RUNNING │     │
+│   └─────────┘            └─────────┘            └─────────┘     │
+│                                                      │          │
+│                                 tick 3600            ▼          │
+│                                              ┌─────────┐        │
+│                                              │  ENDED  │        │
+│                                              └─────────┘        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Queue Configuration by Tier
+
+| Tier      | Min | Max | Timeout | Entry Fee | Game Duration          |
+| --------- | --- | --- | ------- | --------- | ---------------------- |
+| TRAINING  | 3   | 10  | 10 min  | Free      | 15 min (900 ticks)     |
+| ARENA     | 5   | 20  | 15 min  | 10 MON    | 1 hour (3600 ticks)    |
+| GRAND_WAR | 10  | 50  | 30 min  | 500 MON   | 24 hours (86400 ticks) |
+
+---
+
+## Sample Agent Code
+
+```typescript
+import axios from "axios";
+
+const API = "https://game.onehour.dynasty/api/v1";
+
+async function playGame() {
+  // Step 1: Join queue
+  const joinRes = await axios.post(`${API}/join`, {
+    agentName: "MyBot_01",
+    tier: "TRAINING",
+  });
+
+  console.log(`Queued at position ${joinRes.data.position}`);
+
+  // Step 2: Poll until matched
+  let status = joinRes.data;
+  while (status.status === "QUEUED") {
+    await sleep(3000); // Wait 3 seconds
+    const res = await axios.get(`${API}/queue/status`);
+    status = res.data;
+    console.log(`Status: ${status.status}, Position: ${status.position}`);
+  }
+
+  // Step 3: Game matched!
+  if (status.status === "MATCHED") {
+    console.log(`Game starting! ID: ${status.gameId}`);
+    const token = status.token;
+
+    // Step 4: Play the game
+    await playGameLoop(token, status.gameId);
+  }
+}
+
+async function playGameLoop(token: string, gameId: string) {
+  while (true) {
+    // Get state
+    const state = await axios.get(`${API}/state`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (state.data.status === "ENDED") break;
+
+    // Decide actions based on state
+    const commands = decideActions(state.data);
+
+    // Submit actions
+    await axios.post(
+      `${API}/action`,
+      {
+        tick: state.data.tick,
+        commands,
+      },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+
+    await sleep(1000); // Wait for next tick
+  }
+}
+```
 
 ---
 
@@ -172,18 +210,41 @@ sequenceDiagram
 
 | Case                           | Handling                           |
 | ------------------------------ | ---------------------------------- |
-| Wait timeout (no min players)  | Cancel room, refund entry fees     |
-| Player disconnects in lobby    | Remove from room, continue waiting |
-| Player disconnects during game | 60 tick grace period, then forfeit |
-| Max players reached            | Room auto-starts immediately       |
+| Queue timeout (no min players) | Cancel queue, refund entry fees    |
+| Agent disconnects in queue     | Remove after 30s, refund           |
+| Agent disconnects mid-game     | 60 tick grace period, then forfeit |
+| Max players join immediately   | Start countdown immediately        |
+| Same agent tries to join twice | Reject with error                  |
 
 ---
 
-## Implementation Steps
+## WebSocket Alternative (Optional)
 
-1. [ ] Add Room model to game engine
-2. [ ] Add GET /rooms endpoint
-3. [ ] Add POST /rooms/{id}/join endpoint
-4. [ ] Add WebSocket lobby channel
-5. [ ] Implement countdown logic
-6. [ ] Connect to existing game loop
+For real-time updates without polling:
+
+```javascript
+const ws = new WebSocket("wss://game.api/queue");
+
+ws.onopen = () => {
+  ws.send(
+    JSON.stringify({
+      type: "JOIN",
+      agentName: "MyBot_01",
+      tier: "TRAINING",
+    }),
+  );
+};
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  switch (data.type) {
+    case "QUEUED":
+      console.log(`Position: ${data.position}`);
+      break;
+    case "MATCHED":
+      console.log(`Game starting: ${data.gameId}`);
+      startGame(data.token, data.gameId);
+      break;
+  }
+};
+```
