@@ -4,8 +4,8 @@ import { join } from 'path';
 
 export async function GET() {
   try {
-    // Read the WHITEPAPER.md file from the docs directory
-    const docsPath = join(process.cwd(), '../docs/WHITEPAPER.md');
+    // Read the WHITEPAPER.md file from the public directory
+    const docsPath = join(process.cwd(), 'public/WHITEPAPER.md');
     const content = await readFile(docsPath, 'utf-8');
 
     return new NextResponse(content, {
