@@ -15,13 +15,17 @@ describe("Staking", function () {
     wuxia = await WuxiaFactory.deploy(owner.address);
     await wuxia.waitForDeployment();
 
-    await wuxia.connect(owner).transfer(staker.address, ethers.parseEther("50000"));
+    await wuxia
+      .connect(owner)
+      .transfer(staker.address, ethers.parseEther("50000"));
 
     const StakingFactory = await ethers.getContractFactory("Staking");
     staking = await StakingFactory.deploy(await wuxia.getAddress());
     await staking.waitForDeployment();
 
-    await wuxia.connect(staker).approve(await staking.getAddress(), ethers.MaxUint256);
+    await wuxia
+      .connect(staker)
+      .approve(await staking.getAddress(), ethers.MaxUint256);
   });
 
   describe("Staking", function () {
@@ -33,7 +37,11 @@ describe("Staking", function () {
     });
 
     it("Should emit Staked event", async function () {
-      await expect(staking.connect(staker).stake(ethers.parseEther("5000"), 30 * 24 * 60 * 60))
+      await expect(
+        staking
+          .connect(staker)
+          .stake(ethers.parseEther("5000"), 30 * 24 * 60 * 60),
+      )
         .to.emit(staking, "Staked")
         .withArgs(staker.address, ethers.parseEther("5000"), 30 * 24 * 60 * 60);
     });
@@ -42,7 +50,7 @@ describe("Staking", function () {
       await staking.connect(staker).stake(ethers.parseEther("1000"), 0);
 
       await expect(
-        staking.connect(staker).stake(ethers.parseEther("1000"), 0)
+        staking.connect(staker).stake(ethers.parseEther("1000"), 0),
       ).to.be.revertedWithCustomError(staking, "AlreadyStaked");
     });
 
@@ -82,10 +90,12 @@ describe("Staking", function () {
     });
 
     it("Should not allow unstaking before lock period expires", async function () {
-      await staking.connect(staker).stake(ethers.parseEther("1000"), 30 * 24 * 60 * 60);
+      await staking
+        .connect(staker)
+        .stake(ethers.parseEther("1000"), 30 * 24 * 60 * 60);
 
       await expect(
-        staking.connect(staker).unstake()
+        staking.connect(staker).unstake(),
       ).to.be.revertedWithCustomError(staking, "LockPeriodNotExpired");
     });
 

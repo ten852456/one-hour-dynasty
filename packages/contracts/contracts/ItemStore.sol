@@ -16,16 +16,16 @@ contract ItemStore is Ownable, ReentrancyGuard, Errors {
     address public treasury;
 
     enum BoostType {
-        SPEED_START,      // +20% starting resources - 10 WUXIA
-        VISION_PLUS,      // +1 vision range - 15 WUXIA
-        LUCKY_SPAWN,      // Guaranteed Spirit Vein - 20 WUXIA
-        DOUBLE_XP         // Rating gain x2 - 25 WUXIA
+        SPEED_START, // +20% starting resources - 10 WUXIA
+        VISION_PLUS, // +1 vision range - 15 WUXIA
+        LUCKY_SPAWN, // Guaranteed Spirit Vein - 20 WUXIA
+        DOUBLE_XP // Rating gain x2 - 25 WUXIA
     }
 
     enum SubscriptionTier {
-        BRONZE,  // 100 WUXIA - Unlimited TRAINING games
-        SILVER,  // 300 WUXIA - Bronze + 50% ARENA discount
-        GOLD     // 500 WUXIA - Silver + Priority Queue + Beta
+        BRONZE, // 100 WUXIA - Unlimited TRAINING games
+        SILVER, // 300 WUXIA - Bronze + 50% ARENA discount
+        GOLD // 500 WUXIA - Silver + Priority Queue + Beta
     }
 
     uint256[4] public boostPrices = [10 ether, 15 ether, 20 ether, 25 ether];
@@ -41,12 +41,35 @@ contract ItemStore is Ownable, ReentrancyGuard, Errors {
     mapping(address => uint256) public subscriptionExpiry;
 
     // Events
-    event BoostPurchased(address indexed buyer, BoostType boostType, uint256 amount);
-    event SubscriptionPurchased(address indexed buyer, SubscriptionTier tier, uint256 expiry);
-    event UserTierUpdated(address indexed user, SubscriptionTier oldTier, SubscriptionTier newTier);
-    event TreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
-    event PriceUpdated(BoostType indexed boostType, uint256 oldPrice, uint256 newPrice);
-    event SubscriptionPriceUpdated(SubscriptionTier indexed tier, uint256 oldPrice, uint256 newPrice);
+    event BoostPurchased(
+        address indexed buyer,
+        BoostType boostType,
+        uint256 amount
+    );
+    event SubscriptionPurchased(
+        address indexed buyer,
+        SubscriptionTier tier,
+        uint256 expiry
+    );
+    event UserTierUpdated(
+        address indexed user,
+        SubscriptionTier oldTier,
+        SubscriptionTier newTier
+    );
+    event TreasuryUpdated(
+        address indexed oldTreasury,
+        address indexed newTreasury
+    );
+    event PriceUpdated(
+        BoostType indexed boostType,
+        uint256 oldPrice,
+        uint256 newPrice
+    );
+    event SubscriptionPriceUpdated(
+        SubscriptionTier indexed tier,
+        uint256 oldPrice,
+        uint256 newPrice
+    );
     event TokensWithdrawn(address indexed to, uint256 amount);
 
     constructor(address _wuxiaToken, address _treasury) Ownable(msg.sender) {
@@ -90,10 +113,16 @@ contract ItemStore is Ownable, ReentrancyGuard, Errors {
 
         // Extend from max(current expiry, now) to preserve remaining time
         uint256 currentExpiry = subscriptionExpiry[msg.sender];
-        uint256 baseTime = currentExpiry > block.timestamp ? currentExpiry : block.timestamp;
+        uint256 baseTime = currentExpiry > block.timestamp
+            ? currentExpiry
+            : block.timestamp;
         subscriptionExpiry[msg.sender] = baseTime + 30 days;
 
-        emit SubscriptionPurchased(msg.sender, tier, subscriptionExpiry[msg.sender]);
+        emit SubscriptionPurchased(
+            msg.sender,
+            tier,
+            subscriptionExpiry[msg.sender]
+        );
 
         // Emit tier update event if this is an upgrade
         if (oldTier != tier) {
@@ -118,7 +147,9 @@ contract ItemStore is Ownable, ReentrancyGuard, Errors {
      * NOTE: This function returns the on-chain tier which cannot be manipulated by users.
      * Unlike the previous localStorage-based implementation, this is secure and trustworthy.
      */
-    function getUserTier(address user) external view returns (SubscriptionTier) {
+    function getUserTier(
+        address user
+    ) external view returns (SubscriptionTier) {
         if (subscriptionExpiry[user] <= block.timestamp) {
             // Not subscribed or expired - return BRONZE as default
             return SubscriptionTier.BRONZE;
@@ -132,7 +163,9 @@ contract ItemStore is Ownable, ReentrancyGuard, Errors {
      * @param user The address to check
      * @return Remaining time in seconds (0 if not subscribed)
      */
-    function getSubscriptionTimeRemaining(address user) external view returns (uint256) {
+    function getSubscriptionTimeRemaining(
+        address user
+    ) external view returns (uint256) {
         if (subscriptionExpiry[user] <= block.timestamp) return 0;
         return subscriptionExpiry[user] - block.timestamp;
     }
@@ -144,11 +177,13 @@ contract ItemStore is Ownable, ReentrancyGuard, Errors {
      * @return expiry The subscription expiry timestamp
      * @return isActive Whether the subscription is currently active
      */
-    function getSubscriptionInfo(address user) external view returns (
-        SubscriptionTier tier,
-        uint256 expiry,
-        bool isActive
-    ) {
+    function getSubscriptionInfo(
+        address user
+    )
+        external
+        view
+        returns (SubscriptionTier tier, uint256 expiry, bool isActive)
+    {
         expiry = subscriptionExpiry[user];
         isActive = expiry > block.timestamp;
 
@@ -173,7 +208,11 @@ contract ItemStore is Ownable, ReentrancyGuard, Errors {
      * @dev Get all subscription prices at once
      * @return Array of all 3 subscription prices
      */
-    function getAllSubscriptionPrices() external view returns (uint256[3] memory) {
+    function getAllSubscriptionPrices()
+        external
+        view
+        returns (uint256[3] memory)
+    {
         return subscriptionPrices;
     }
 
@@ -193,7 +232,10 @@ contract ItemStore is Ownable, ReentrancyGuard, Errors {
      * @param boostType The boost type to update
      * @param newPrice The new price (must be > 0 and <= MAX_PRICE)
      */
-    function setBoostPrice(BoostType boostType, uint256 newPrice) external onlyOwner {
+    function setBoostPrice(
+        BoostType boostType,
+        uint256 newPrice
+    ) external onlyOwner {
         if (newPrice == 0 || newPrice > MAX_PRICE) revert PriceOutOfRange();
         uint256 oldPrice = boostPrices[uint256(boostType)];
         boostPrices[uint256(boostType)] = newPrice;
@@ -205,7 +247,10 @@ contract ItemStore is Ownable, ReentrancyGuard, Errors {
      * @param tier The subscription tier to update
      * @param newPrice The new price (must be > 0 and <= MAX_PRICE)
      */
-    function setSubscriptionPrice(SubscriptionTier tier, uint256 newPrice) external onlyOwner {
+    function setSubscriptionPrice(
+        SubscriptionTier tier,
+        uint256 newPrice
+    ) external onlyOwner {
         if (newPrice == 0 || newPrice > MAX_PRICE) revert PriceOutOfRange();
         uint256 oldPrice = subscriptionPrices[uint256(tier)];
         subscriptionPrices[uint256(tier)] = newPrice;
