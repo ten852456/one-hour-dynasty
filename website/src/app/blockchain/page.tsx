@@ -219,7 +219,7 @@ export default function BlockchainPage() {
 
   /**
    * Handle approval with proper async handling
-   * FIXED: Remove stale needsApproval check after refetch
+   * FIXED: Wait for refetch to complete before showing success
    */
   const handleApprove = useCallback(async () => {
     setTxError(null);
@@ -229,9 +229,14 @@ export default function BlockchainPage() {
     const result = await approveStaking();
 
     if (result.success) {
-      // Refetch allowance to update hook state
-      // The allowance will be updated by the time user tries to stake
+      // Show intermediate state while refetching
+      setTxSuccess("Contract approved! Updating allowance...");
+
+      // Wait for refetch to complete before showing final success
       await refetchAllowance();
+
+      // Small delay to ensure UI updates
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       setTxSuccess("Contract approved! You can now stake your tokens.");
       setTxHash(result.hash || null);
