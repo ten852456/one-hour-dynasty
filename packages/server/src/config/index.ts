@@ -78,7 +78,8 @@ export const config: Config = {
   },
 
   jwt: {
-    secret: getEnvVar('JWT_SECRET', 'change-this-to-a-32-character-secret-key'),
+    // No default - force explicit configuration for security
+    secret: getEnvVar('JWT_SECRET', ''),
     expiresIn: '24h',
   },
 
@@ -112,17 +113,15 @@ export const config: Config = {
 export function validateConfig(): void {
   const errors: string[] = [];
 
-  // JWT secret validation
-  if (config.nodeEnv === 'production') {
-    if (
-      config.jwt.secret === 'change-this-to-a-32-character-secret-key' ||
-      config.jwt.secret.length < 32
-    ) {
-      errors.push(
-        'JWT_SECRET must be set to a secure value with at least 32 characters in production'
-      );
-    }
+  // JWT secret validation - always required
+  if (!config.jwt.secret || config.jwt.secret.length < 32) {
+    errors.push(
+      'JWT_SECRET must be set to a secure value with at least 32 characters'
+    );
+  }
 
+  // Production-specific validation
+  if (config.nodeEnv === 'production') {
     // Required blockchain configuration
     if (!config.monad.payToAddress || config.monad.payToAddress.length === 0) {
       errors.push('PAY_TO_ADDRESS must be set in production');

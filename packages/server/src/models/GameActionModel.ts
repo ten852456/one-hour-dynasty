@@ -20,6 +20,10 @@ export interface CreateGameActionInput {
   action_data: Record<string, any>;
 }
 
+export interface UpdateGameActionInput {
+  action_data?: Record<string, any>;
+}
+
 export class GameActionModel {
   static async create(input: CreateGameActionInput): Promise<GameAction> {
     const text = 'INSERT INTO game_actions (game_id, agent_id, tick, action_data) VALUES ($1, $2, $3, $4) RETURNING *';
@@ -34,6 +38,21 @@ export class GameActionModel {
     return result.rows[0] || null;
   }
 
+  static async update(id: string, input: UpdateGameActionInput): Promise<GameAction> {
+    if (input.action_data === undefined) {
+      throw new Error('No fields to update');
+    }
+
+    const text = 'UPDATE game_actions SET action_data = $1 WHERE id = $2 RETURNING *';
+    const result = await query(text, [JSON.stringify(input.action_data), id]);
+
+    if (result.rows.length === 0) {
+      throw new Error('Game action not found');
+    }
+
+    return result.rows[0];
+  }
+
   static async findByGameId(gameId: string, limit = 1000, offset = 0): Promise<GameAction[]> {
     const text = 'SELECT * FROM game_actions WHERE game_id = $1 ORDER BY tick ASC, created_at ASC LIMIT $2 OFFSET $3';
     const result = await query(text, [gameId, limit, offset]);
@@ -44,6 +63,12 @@ export class GameActionModel {
     const text = 'SELECT * FROM game_actions WHERE game_id = $1 AND tick = $2 ORDER BY created_at ASC';
     const result = await query(text, [gameId, tick]);
     return result.rows;
+  }
+
+  static async findByGameAgentAndTick(gameId: string, agentId: string, tick: number): Promise<GameAction | null> {
+    const text = 'SELECT * FROM game_actions WHERE game_id = $1 AND agent_id = $2 AND tick = $3';
+    const result = await query(text, [gameId, agentId, tick]);
+    return result.rows[0] || null;
   }
 
   static async findByAgentId(agentId: string, limit = 100, offset = 0): Promise<GameAction[]> {
