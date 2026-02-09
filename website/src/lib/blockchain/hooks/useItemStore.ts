@@ -2,7 +2,7 @@
 
 import { useReadContract, useWriteContract } from 'wagmi'
 import { parseUnits, formatUnits } from 'viem'
-import { config, CONTRACTS, TOKEN_DECIMALS, getGasLimit, parseTransactionError } from '../config'
+import { config, CONTRACTS, TOKEN_DECIMALS, getGasLimit, parseTransactionError, getTransactionReceipt } from '../config'
 import ItemStoreAbi from '../abis/ItemStore.json'
 import { BoostType, SubscriptionTier } from '../types'
 
@@ -84,11 +84,12 @@ export interface ItemStoreOperationResult {
   hash?: string
   success: boolean
   error?: string
+  receipt?: { status: 'success' | 'reverted' }
 }
 
 /**
  * Hook for ItemStore operations (boosts and subscriptions)
- * Enhanced with proper error handling
+ * Enhanced with on-chain tier tracking (secure, not manipulatable)
  */
 export function useItemStore(address?: string) {
   // Read boost prices
@@ -152,6 +153,19 @@ export function useItemStore(address?: string) {
     },
   })
 
+  // Get user's subscription tier from contract (SECURE - on-chain, not manipulatable)
+  const { data: userTier, refetch: refetchUserTier } = useReadContract({
+    address: CONTRACTS.ITEM_STORE,
+    abi: ItemStoreAbi.abi,
+    functionName: 'getUserTier',
+    args: address ? [address as `0x${string}`] : undefined,
+    config,
+    query: {
+      enabled: !!address,
+      staleTime: 30_000,
+    },
+  })
+
   // Write operations
   const { data: hash, writeContract: _writeContract, isPending, error } = useWriteContract({ config })
 
@@ -170,6 +184,9 @@ export function useItemStore(address?: string) {
         gas: getGasLimit('BOOST_PURCHASE'),
       })
 
+      // Wait for transaction confirmation
+      await getTransactionReceipt(txHash)
+
       // Refetch prices after purchase
       await refetchBoostPrices()
 
@@ -182,6 +199,7 @@ export function useItemStore(address?: string) {
 
   /**
    * Buy a subscription
+   * The tier is now stored on-chain and cannot be manipulated by users
    */
   const buySubscription = async (tier: SubscriptionTier): Promise<ItemStoreOperationResult> => {
     try {
@@ -195,24 +213,16 @@ export function useItemStore(address?: string) {
         gas: getGasLimit('SUBSCRIPTION_PURCHASE'),
       })
 
-      // Store the purchased tier in localStorage for later retrieval
-      // TODO: This is a workaround. The contract should store the tier.
-      // Consider adding a getUserTier() function to the contract.
-      try {
-        const userTiers = JSON.parse(localStorage.getItem('subscriptionTiers') || '{}')
-        userTiers[address.toLowerCase()] = {
-          tier,
-          timestamp: Date.now(),
-        }
-        localStorage.setItem('subscriptionTiers', JSON.stringify(userTiers))
-      } catch (e) {
-        console.warn('Failed to store subscription tier:', e)
+      // Wait for transaction confirmation
+      const receipt = await getTransactionReceipt(txHash)
+
+      // Refetch subscription info after successful transaction
+      if (receipt.status === 'success') {
+        await refetchSubscription()
+        await refetchUserTier()
       }
 
-      // Refetch subscription info after purchase
-      await refetchSubscription()
-
-      return { hash: txHash, success: true }
+      return { hash: txHash, success: true, receipt }
     } catch (err) {
       const parsedError = parseTransactionError(err)
       return { success: false, error: parsedError.message }
@@ -256,27 +266,15 @@ export function useItemStore(address?: string) {
   }
 
   /**
-   * Get user's subscription tier from localStorage
-   * This is a workaround until the contract is updated to store the tier
+   * Get user's subscription tier from contract
+   *
+   * SECURITY: This now reads from the on-chain `userTier` mapping which was added
+   * to prevent the localStorage vulnerability. Users can no longer manipulate their
+   * subscription tier to access premium features without paying.
    */
   const getUserTier = (): SubscriptionTier => {
-    if (!address) return SubscriptionTier.BRONZE
-
-    try {
-      const userTiers = JSON.parse(localStorage.getItem('subscriptionTiers') || '{}')
-      const stored = userTiers[address.toLowerCase()]
-      if (stored && stored.timestamp) {
-        // Check if the stored tier is still valid (within the subscription period)
-        const expiryTime = Number(subscriptionExpiry || 0n) * 1000
-        if (Date.now() < expiryTime) {
-          return stored.tier
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to retrieve subscription tier:', e)
-    }
-
-    return SubscriptionTier.BRONZE
+    // Use the contract data - defaults to BRONZE (0) if not subscribed or expired
+    return (userTier ?? SubscriptionTier.BRONZE) as SubscriptionTier
   }
 
   /**
@@ -288,7 +286,7 @@ export function useItemStore(address?: string) {
     const timeRemaining = subscriptionTimeRemaining
     const isActive = hasActiveSubscription ?? false
 
-    // Get tier from localStorage (workaround)
+    // Get tier from on-chain contract (secure, not manipulatable)
     const tier = getUserTier()
 
     return {
@@ -312,6 +310,7 @@ export function useItemStore(address?: string) {
     subscriptionPrices: subscriptionPrices ?? [0n, 0n, 0n],
     buySubscription,
     subscriptionInfo: getSubscriptionInfo(),
+    userTier: getUserTier(),  // Expose the user's tier from contract
     hasActiveSubscription: hasActiveSubscription ?? false,
     subscriptionTimeRemaining: subscriptionTimeRemaining ?? 0n,
     subscriptionExpiry: subscriptionExpiry ?? 0n,
@@ -325,6 +324,7 @@ export function useItemStore(address?: string) {
     refetchBoostPrices,
     refetchSubscriptionPrices,
     refetchSubscription,
+    refetchUserTier,
 
     // Transaction state
     isPending,

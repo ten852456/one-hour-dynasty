@@ -32,7 +32,7 @@ const requiredEnvVars = {
   NEXT_PUBLIC_CHAIN_ID: process.env.NEXT_PUBLIC_CHAIN_ID,
 } as const
 
-// Validate required environment variables at build time
+// Validate required environment variables
 const validateEnv = () => {
   const missing: string[] = []
 
@@ -41,8 +41,15 @@ const validateEnv = () => {
   if (!requiredEnvVars.NEXT_PUBLIC_STAKING_ADDRESS) missing.push('NEXT_PUBLIC_STAKING_ADDRESS')
   if (!requiredEnvVars.NEXT_PUBLIC_GAME_RESULTS_RECORDER_ADDRESS) missing.push('NEXT_PUBLIC_GAME_RESULTS_RECORDER_ADDRESS')
 
-  if (missing.length > 0 && typeof window !== 'undefined') {
-    console.error(`Missing required environment variables: ${missing.join(', ')}`)
+  // In production, throw errors for missing required env vars
+  if (missing.length > 0) {
+    const errorMsg = `Missing required environment variables: ${missing.join(', ')}`
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(errorMsg)
+    }
+    if (typeof window !== 'undefined') {
+      console.error(errorMsg)
+    }
   }
 }
 
@@ -116,12 +123,14 @@ export const config = createConfig({
 /**
  * Deployed contract addresses on Monad Testnet
  * All addresses are loaded from environment variables to avoid magic numbers
+ *
+ * SECURITY: No fallback addresses in production - all addresses must be explicitly configured
  */
 export const CONTRACTS = {
-  WUXIA_TOKEN: (requiredEnvVars.NEXT_PUBLIC_WUXIA_TOKEN_ADDRESS || '0xF423ae72e96991F11F1836dAaC5A8b18dD592370') as `0x${string}`,
-  ITEM_STORE: (requiredEnvVars.NEXT_PUBLIC_ITEM_STORE_ADDRESS || '0xB4e79Bf1342E040eE1EF505281DB045bfB465F26') as `0x${string}`,
-  STAKING: (requiredEnvVars.NEXT_PUBLIC_STAKING_ADDRESS || '0x7af53FAf81068905A0b3e96B43848D440BcaFF98') as `0x${string}`,
-  GAME_RESULTS_RECORDER: (requiredEnvVars.NEXT_PUBLIC_GAME_RESULTS_RECORDER_ADDRESS || '0x22054c0065f5F97FFB39F08Aa31669f5c8156522') as `0x${string}`,
+  WUXIA_TOKEN: requiredEnvVars.NEXT_PUBLIC_WUXIA_TOKEN_ADDRESS as `0x${string}`,
+  ITEM_STORE: requiredEnvVars.NEXT_PUBLIC_ITEM_STORE_ADDRESS as `0x${string}`,
+  STAKING: requiredEnvVars.NEXT_PUBLIC_STAKING_ADDRESS as `0x${string}`,
+  GAME_RESULTS_RECORDER: requiredEnvVars.NEXT_PUBLIC_GAME_RESULTS_RECORDER_ADDRESS as `0x${string}`,
 } as const
 
 /**
@@ -278,6 +287,44 @@ export async function waitForTransaction(
   await new Promise(resolve => setTimeout(resolve, waitTime))
 }
 
+/**
+ * Transaction result with receipt
+ */
+export interface TransactionReceipt {
+  hash: string
+  status: 'success' | 'reverted'
+  blockNumber?: bigint
+  blockHash?: string
+  gasUsed?: bigint
+}
+
+/**
+ * Wait for transaction receipt with proper confirmation
+ * This ensures the transaction was mined and confirmed before proceeding
+ *
+ * @param config - Wagmi config
+ * @param hash - Transaction hash
+ * @param confirmations - Number of block confirmations to wait for
+ * @returns Transaction receipt or throws error
+ */
+export async function getTransactionReceipt(
+  hash: string,
+  confirmations: number = 1
+): Promise<{ status: 'success' | 'reverted' }> {
+  // Import dynamically to avoid circular dependencies
+  const { getPublicClient } = await import('wagmi/actions')
+  const publicClient = await getPublicClient(config)
+
+  const receipt = await publicClient.waitForTransactionReceipt({
+    hash: hash as `0x${string}`,
+    confirmations,
+  })
+
+  return {
+    status: receipt.status === 'success' ? 'success' : 'reverted',
+  }
+}
+
 // ============================================
 // Error Types
 // ============================================
@@ -332,8 +379,67 @@ export function parseTransactionError(error: unknown): BlockchainError {
       return new InsufficientFundsError()
     }
 
+    // Check for insufficient allowance
+    if (error.message.includes('insufficient allowance') || error.message.includes('allowance')) {
+      return new BlockchainError('Insufficient allowance. Please approve the contract to spend your tokens first.', 'INSUFFICIENT_ALLOWANCE')
+    }
+
     return new BlockchainError(error.message)
   }
 
   return new BlockchainError('Unknown error occurred')
+}
+
+/**
+ * Approve ERC-20 token spending
+ * Used to approve contracts to spend tokens on behalf of user
+ *
+ * @param tokenAddress - Token contract address
+ * @param spender - Address to approve (e.g., ItemStore contract)
+ * @param amount - Amount to approve (use MaxUint256 for unlimited)
+ * @returns Transaction hash
+ */
+export async function approveTokenSpending(
+  tokenAddress: `0x${string}`,
+  spender: `0x${string}`,
+  amount: bigint = 2n ** 256n - 1n // MaxUint256 for unlimited approval
+): Promise<`0x${string}`> {
+  const { writeContract } = await import('wagmi/actions')
+  const WuxiaTokenAbi = await import('../abis/WuxiaToken.json')
+
+  const hash = await writeContract(config, {
+    address: tokenAddress,
+    abi: WuxiaTokenAbi.abi,
+    functionName: 'approve',
+    args: [spender, amount],
+    gas: getGasLimit('TOKEN_TRANSFER'),
+  })
+
+  return hash as `0x${string}`
+}
+
+/**
+ * Check ERC-20 token allowance
+ *
+ * @param tokenAddress - Token contract address
+ * @param owner - Token owner address
+ * @param spender - Address to check allowance for
+ * @returns Current allowance amount
+ */
+export async function getTokenAllowance(
+  tokenAddress: `0x${string}`,
+  owner: `0x${string}`,
+  spender: `0x${string}`
+): Promise<bigint> {
+  const { readContract } = await import('wagmi/actions')
+  const WuxiaTokenAbi = await import('../abis/WuxiaToken.json')
+
+  const allowance = await readContract(config, {
+    address: tokenAddress,
+    abi: WuxiaTokenAbi.abi,
+    functionName: 'allowance',
+    args: [owner, spender],
+  })
+
+  return allowance as bigint
 }

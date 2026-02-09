@@ -2,8 +2,9 @@
 
 import { useReadContract, useWriteContract } from 'wagmi'
 import { parseUnits, formatUnits } from 'viem'
-import { config, CONTRACTS, TOKEN_DECIMALS, STAKING_LIMITS, getGasLimit, parseTransactionError } from '../config'
+import { config, CONTRACTS, TOKEN_DECIMALS, STAKING_LIMITS, getGasLimit, parseTransactionError, getTransactionReceipt } from '../config'
 import StakingAbi from '../abis/Staking.json'
+import WuxiaTokenAbi from '../abis/WuxiaToken.json'
 
 /**
  * Staking tier information
@@ -23,11 +24,12 @@ export interface StakingOperationResult {
   hash?: string
   success: boolean
   error?: string
+  receipt?: { status: 'success' | 'reverted' }
 }
 
 /**
  * Hook for Staking contract operations
- * Enhanced with proper error handling, contract-based tiers, and input validation
+ * Enhanced with transaction receipt waiting and approval flow
  */
 export function useStaking(address?: string) {
   // Read stake tier thresholds from contract
@@ -89,6 +91,19 @@ export function useStaking(address?: string) {
       ],
     },
   ]
+
+  // Check token allowance for staking contract
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+    address: CONTRACTS.WUXIA_TOKEN,
+    abi: WuxiaTokenAbi.abi,
+    functionName: 'allowance',
+    args: address ? [address as `0x${string}`, CONTRACTS.STAKING] : undefined,
+    config,
+    query: {
+      enabled: !!address,
+      staleTime: 30_000,
+    },
+  })
 
   // Read stake info
   const { data: stakeInfo, refetch: refetchStake, isLoading: isLoadingStake } = useReadContract({
@@ -157,7 +172,43 @@ export function useStaking(address?: string) {
   }
 
   /**
-   * Stake tokens with validation
+   * Approve staking contract to spend tokens
+   */
+  const approveStaking = async (): Promise<StakingOperationResult> => {
+    try {
+      if (!address) throw new Error('No address connected')
+
+      const txHash = await _writeContract({
+        address: CONTRACTS.WUXIA_TOKEN,
+        abi: WuxiaTokenAbi.abi,
+        functionName: 'approve',
+        args: [CONTRACTS.STAKING, 2n ** 256n - 1n], // Unlimited approval
+        gas: getGasLimit('TOKEN_TRANSFER'),
+      })
+
+      // Wait for transaction confirmation
+      await getTransactionReceipt(txHash)
+
+      // Refetch allowance
+      await refetchAllowance()
+
+      return { hash: txHash, success: true }
+    } catch (err) {
+      const parsedError = parseTransactionError(err)
+      return { success: false, error: parsedError.message }
+    }
+  }
+
+  /**
+   * Check if approval is needed
+   */
+  const needsApproval = (amount: bigint): boolean => {
+    const currentAllowance = allowance || 0n
+    return currentAllowance < amount
+  }
+
+  /**
+   * Stake tokens with validation and approval check
    * @param amount Amount to stake in WUXIA (human-readable, e.g., 1000)
    * @param lockDuration Lock duration in seconds (0 = no lock)
    */
@@ -178,6 +229,14 @@ export function useStaking(address?: string) {
 
       const amountInWei = parseUnits(amount.toString(), TOKEN_DECIMALS)
 
+      // Check if approval is needed
+      if (needsApproval(amountInWei)) {
+        return {
+          success: false,
+          error: 'Approval required. Please approve the staking contract to spend your WUXIA tokens first.'
+        }
+      }
+
       const txHash = await _writeContract({
         address: CONTRACTS.STAKING,
         abi: StakingAbi.abi,
@@ -186,10 +245,15 @@ export function useStaking(address?: string) {
         gas: getGasLimit('STAKE'),
       })
 
-      // Refetch stake info after staking
-      await refetchStake()
+      // Wait for transaction confirmation before refetching
+      const receipt = await getTransactionReceipt(txHash)
 
-      return { hash: txHash, success: true }
+      // Only refetch if transaction was successful
+      if (receipt.status === 'success') {
+        await refetchStake()
+      }
+
+      return { hash: txHash, success: true, receipt }
     } catch (err) {
       const parsedError = parseTransactionError(err)
       return { success: false, error: parsedError.message }
@@ -210,10 +274,15 @@ export function useStaking(address?: string) {
         gas: getGasLimit('UNSTAKE'),
       })
 
-      // Refetch stake info after unstaking
-      await refetchStake()
+      // Wait for transaction confirmation before refetching
+      const receipt = await getTransactionReceipt(txHash)
 
-      return { hash: txHash, success: true }
+      // Only refetch if transaction was successful
+      if (receipt.status === 'success') {
+        await refetchStake()
+      }
+
+      return { hash: txHash, success: true, receipt }
     } catch (err) {
       const parsedError = parseTransactionError(err)
       return { success: false, error: parsedError.message }
@@ -236,6 +305,14 @@ export function useStaking(address?: string) {
 
       const amountInWei = parseUnits(additionalAmount.toString(), TOKEN_DECIMALS)
 
+      // Check if approval is needed
+      if (needsApproval(amountInWei)) {
+        return {
+          success: false,
+          error: 'Approval required. Please approve the staking contract to spend your WUXIA tokens first.'
+        }
+      }
+
       const txHash = await _writeContract({
         address: CONTRACTS.STAKING,
         abi: StakingAbi.abi,
@@ -244,10 +321,15 @@ export function useStaking(address?: string) {
         gas: getGasLimit('INCREASE_STAKE'),
       })
 
-      // Refetch stake info after increasing
-      await refetchStake()
+      // Wait for transaction confirmation before refetching
+      const receipt = await getTransactionReceipt(txHash)
 
-      return { hash: txHash, success: true }
+      // Only refetch if transaction was successful
+      if (receipt.status === 'success') {
+        await refetchStake()
+      }
+
+      return { hash: txHash, success: true, receipt }
     } catch (err) {
       const parsedError = parseTransactionError(err)
       return { success: false, error: parsedError.message }
@@ -329,10 +411,15 @@ export function useStaking(address?: string) {
     // Tiers (now read from contract)
     stakingTiers,
 
+    // Allowance
+    allowance: allowance ?? 0n,
+    needsApproval,
+
     // Operations (now with proper return types)
     stake,
     unstake,
     increaseStake,
+    approveStaking,
 
     // Validation
     validateStakeAmount,

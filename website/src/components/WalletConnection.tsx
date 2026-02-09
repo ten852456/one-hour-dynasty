@@ -40,11 +40,14 @@ export function WalletConnection() {
         {/* Account Button */}
         <button
           onClick={() => setShowWalletMenu(!showWalletMenu)}
+          aria-label={`Wallet menu${balanceFormatted ? ` with balance ${balanceFormatted}` : ''}`}
+          aria-expanded={showWalletMenu}
+          aria-haspopup="true"
           className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-red-900/50 border border-red-500/30"
         >
-          <div className={`w-2 h-2 rounded-full ${isCorrectChain ? 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.8)]'}`} />
+          <div className={`w-2 h-2 rounded-full ${isCorrectChain ? 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.8)]'}`} aria-hidden="true" />
           <span className="font-medium">{shortAddress}</span>
-          <span className="text-yellow-200 text-sm">{balanceFormatted}</span>
+          <span className="text-yellow-200 text-sm" aria-label={`Balance: ${balanceFormatted || 'Loading...'}`}>{balanceFormatted}</span>
         </button>
 
         {/* Wallet Menu Dropdown */}
@@ -133,6 +136,8 @@ export function WalletConnection() {
     <button
       onClick={() => connectWallet()}
       disabled={isPending}
+      aria-label="Connect wallet"
+      aria-busy={isPending}
       className="px-6 py-2 bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white rounded-lg font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-yellow-900/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 disabled:shadow-none border border-yellow-500/30"
     >
       {isPending ? (
@@ -142,6 +147,7 @@ export function WalletConnection() {
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
+            aria-hidden="true"
           >
             <circle
               className="opacity-25"
@@ -157,7 +163,7 @@ export function WalletConnection() {
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             />
           </svg>
-          Connecting...
+          <span>Connecting...</span>
         </span>
       ) : (
         <span>Join Sect</span>

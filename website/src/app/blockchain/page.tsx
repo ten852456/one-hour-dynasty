@@ -29,6 +29,9 @@ export default function BlockchainPage() {
     isPending: stakingPending,
     validateStakeAmount,
     isLoading: isLoadingStaking,
+    allowance,
+    approveStaking,
+    needsApproval,
   } = useStaking(address)
 
   const [selectedStakeAmount, setSelectedStakeAmount] = useState('1000')
@@ -37,6 +40,7 @@ export default function BlockchainPage() {
   const [txError, setTxError] = useState<string | null>(null)
   const [txSuccess, setTxSuccess] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'enhancements' | 'memberships' | 'offerings'>('overview')
+  const [showApproval, setShowApproval] = useState(false)
 
   // Quick action to switch tabs
   const goToMemberships = () => setActiveTab('memberships')
@@ -63,7 +67,7 @@ export default function BlockchainPage() {
     }
   }, [validateStakeAmount])
 
-  // Handle stake transaction with error handling
+  // Handle stake transaction with error handling and approval flow
   const handleStake = useCallback(async () => {
     setTxError(null)
     setTxSuccess(null)
@@ -76,6 +80,12 @@ export default function BlockchainPage() {
       return
     }
 
+    // Check if approval is needed first
+    if (needsApproval(BigInt(amount * 1e18))) {
+      setShowApproval(true)
+      return
+    }
+
     const result = await stake(amount, Number(selectedLockDuration) * 24 * 60 * 60)
 
     if (result.success) {
@@ -85,7 +95,22 @@ export default function BlockchainPage() {
     } else {
       setTxError(result.error || 'Transaction failed')
     }
-  }, [selectedStakeAmount, selectedLockDuration, stake, validateStakeAmount])
+  }, [selectedStakeAmount, selectedLockDuration, stake, validateStakeAmount, needsApproval])
+
+  // Handle approval
+  const handleApprove = useCallback(async () => {
+    setTxError(null)
+    setTxSuccess(null)
+
+    const result = await approveStaking()
+
+    if (result.success) {
+      setTxSuccess('Contract approved! You can now stake your tokens.')
+      setShowApproval(false)
+    } else {
+      setTxError(result.error || 'Approval failed')
+    }
+  }, [approveStaking])
 
   // Handle buy boost with error handling
   const handleBuyBoost = useCallback(async (boostType: BoostType) => {
@@ -487,25 +512,61 @@ export default function BlockchainPage() {
                 </h3>
                 <div className="bg-black/50 border border-red-900/30 rounded-lg p-4">
                   <div className="space-y-3">
+                    {/* Approval Notice */}
+                    {showApproval && (
+                      <div className="mb-4 p-3 bg-yellow-500/20 border border-yellow-500/50 rounded-lg">
+                        <p className="text-yellow-400 text-sm font-medium mb-2">
+                          Approval Required
+                        </p>
+                        <p className="text-yellow-400/80 text-xs mb-3">
+                          You need to approve the staking contract to spend your WUXIA tokens. This is a one-time approval.
+                        </p>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleApprove}
+                            disabled={isTxPending}
+                            className="flex-1 px-3 py-2 bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 disabled:from-gray-700 disabled:to-gray-800 text-white rounded text-sm font-medium transition-all hover:scale-105 disabled:scale-100"
+                            aria-label="Approve staking contract to spend WUXIA tokens"
+                          >
+                            {isTxPending ? 'Approving...' : 'Approve'}
+                          </button>
+                          <button
+                            onClick={() => setShowApproval(false)}
+                            className="px-3 py-2 bg-transparent border border-gray-700 hover:border-gray-600 text-gray-400 hover:text-gray-300 rounded text-sm transition-all"
+                            aria-label="Cancel approval"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
                     <div>
-                      <label className="block text-xs font-medium text-gray-400 mb-1">Amount (WUXIA)</label>
+                      <label className="block text-xs font-medium text-gray-400 mb-1" htmlFor="stake-amount">
+                        Amount (WUXIA)
+                      </label>
                       <input
+                        id="stake-amount"
                         type="number"
                         min={STAKING_LIMITS.MIN_AMOUNT}
                         max={STAKING_LIMITS.MAX_AMOUNT}
                         step="any"
                         value={selectedStakeAmount}
                         onChange={(e) => handleStakeAmountChange(e.target.value)}
+                        aria-describedby="stake-amount-error"
+                        aria-invalid={!!stakeError}
                         className={`w-full px-3 py-2 bg-gray-900/50 border ${stakeError ? 'border-red-500' : 'border-red-900/50'} rounded text-white text-sm focus:outline-none focus:border-yellow-500/60`}
                         placeholder="1000"
                       />
                       {stakeError && (
-                        <p className="text-red-400 text-xs mt-1">{stakeError}</p>
+                        <p id="stake-amount-error" className="text-red-400 text-xs mt-1" role="alert">{stakeError}</p>
                       )}
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-400 mb-1">Lock Duration (days)</label>
+                      <label className="block text-xs font-medium text-gray-400 mb-1" htmlFor="lock-duration">
+                        Lock Duration (days)
+                      </label>
                       <input
+                        id="lock-duration"
                         type="number"
                         min="0"
                         value={selectedLockDuration}
@@ -518,8 +579,9 @@ export default function BlockchainPage() {
                       onClick={handleStake}
                       disabled={isTxPending || !!stakeError}
                       className="w-full px-3 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-700 disabled:to-gray-800 text-white rounded text-sm font-medium transition-all hover:scale-105 disabled:scale-100"
+                      aria-label={`Stake ${selectedStakeAmount} WUXIA tokens`}
                     >
-                      Offer WUXIA
+                      {isTxPending ? 'Processing...' : 'Offer WUXIA'}
                     </button>
                   </div>
                 </div>
