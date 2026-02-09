@@ -175,6 +175,20 @@ export const STAKING_LIMITS = {
   LOCK_DURATIONS: (process.env.NEXT_PUBLIC_LOCK_DURATIONS || '0,7,30,90,365').split(',').map(Number),
 } as const
 
+/**
+ * Staking safety buffer (in seconds)
+ *
+ * SECURITY: This buffer is added to lock period calculations to prevent users from
+ * attempting to unstake too early due to clock skew or block time differences between
+ * the blockchain and the client.
+ *
+ * For Monad with 400ms block time, 300 seconds (5 minutes) provides sufficient buffer
+ * while maintaining good UX. Adjust based on your needs:
+ * - Development: 60 (1 minute) for faster testing
+ * - Production: 300 (5 minutes) for safety
+ */
+export const STAKING_SAFETY_BUFFER = Number(process.env.NEXT_PUBLIC_STAKING_SAFETY_BUFFER) || 300
+
 // ============================================
 // Gas Settings
 // ============================================
@@ -185,8 +199,7 @@ export const STAKING_LIMITS = {
  * IMPORTANT: On Monad, gas is charged on gas-limit (not gas-used)
  * Set gas limits accurately to avoid overpaying
  */
-export const GAS_SETTINGS = {
-  // Conservative gas limits for different transaction types
+export const GAS_LIMITS = {
   TOKEN_TRANSFER: 100_000n,
   TOKEN_MINT: 200_000n,
   BOOST_PURCHASE: 300_000n,
@@ -194,18 +207,16 @@ export const GAS_SETTINGS = {
   STAKE: 250_000n,
   UNSTAKE: 200_000n,
   INCREASE_STAKE: 200_000n,
-
-  // Gas price multiplier (Monad can handle higher gas prices)
-  GAS_PRICE_MULTIPLIER: 1.2,
 } as const
+
+// Gas price multiplier (Monad can handle higher gas prices)
+export const GAS_PRICE_MULTIPLIER = 1.2
 
 /**
  * Get gas limit for a specific transaction type
  */
-export function getGasLimit(type: keyof typeof GAS_SETTINGS): bigint {
-  const value = GAS_SETTINGS[type]
-  // Ensure we always return bigint
-  return typeof value === 'bigint' ? value : BigInt(value)
+export function getGasLimit(type: keyof typeof GAS_LIMITS): bigint {
+  return GAS_LIMITS[type]
 }
 
 // ============================================

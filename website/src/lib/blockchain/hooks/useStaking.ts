@@ -4,9 +4,32 @@
 
 import { useReadContract, useWriteContract } from 'wagmi'
 import { parseUnits, formatUnits } from 'viem'
-import { config, CONTRACTS, TOKEN_DECIMALS, STAKING_LIMITS, getGasLimit, parseTransactionError, getTransactionReceipt } from '../config'
+import { config, CONTRACTS, TOKEN_DECIMALS, STAKING_LIMITS, getGasLimit, parseTransactionError, getTransactionReceipt, STAKING_SAFETY_BUFFER } from '../config'
 import StakingAbi from '../abis/Staking.json'
 import WuxiaTokenAbi from '../abis/WuxiaToken.json'
+
+/**
+ * Type definition for stake info returned from contract
+ */
+type StakeInfoData = {
+  amount: bigint
+  timestamp: bigint
+  lockDuration: bigint
+}
+
+/**
+ * Type guard for stake info structure
+ * Validates that the data has the required properties
+ */
+function isStakeInfo(data: unknown): data is StakeInfoData {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'amount' in data &&
+    'timestamp' in data &&
+    'lockDuration' in data
+  )
+}
 
 /**
  * Staking tier information
@@ -372,25 +395,18 @@ export function useStaking(address?: string) {
    * Uses blockchain timestamp (from stakeInfo) with safety buffer
    */
   const canUnstake = () => {
-    const info = stakeInfo as {
-      amount: bigint
-      timestamp: bigint
-      lockDuration: bigint
-    } | undefined
-    if (!info) return false
-    const { amount, timestamp, lockDuration } = info
+    if (!isStakeInfo(stakeInfo)) return false
+    const { amount, timestamp, lockDuration } = stakeInfo
     if (!amount || amount === 0n) return false
     if (!lockDuration || lockDuration === 0n) return true
 
     // Use blockchain timestamp from contract
     const lockEndTime = Number(timestamp) + Number(lockDuration)
 
-    // Add a 5 MINUTE safety buffer (300 seconds) instead of 60
-    // This makes manipulation harder and accounts for clock skew
-    const safetyBuffer = 300
+    // Add safety buffer from config (default: 300 seconds / 5 minutes)
     const currentTime = Math.floor(Date.now() / 1000)
 
-    return currentTime >= (lockEndTime + safetyBuffer)
+    return currentTime >= (lockEndTime + STAKING_SAFETY_BUFFER)
   }
 
   /**
@@ -398,19 +414,14 @@ export function useStaking(address?: string) {
    * Includes safety buffer
    */
   const getLockTimeRemaining = () => {
-    const info = stakeInfo as {
-      timestamp: bigint
-      lockDuration: bigint
-    } | undefined
-    if (!info) return 0
-    const { timestamp, lockDuration } = info
+    if (!isStakeInfo(stakeInfo)) return 0
+    const { timestamp, lockDuration } = stakeInfo
     if (!lockDuration || lockDuration === 0n) return 0
 
     const lockEndTime = Number(timestamp) + Number(lockDuration)
-    const safetyBuffer = 60
     const currentTime = Math.floor(Date.now() / 1000)
 
-    const remaining = (lockEndTime + safetyBuffer) - currentTime
+    const remaining = (lockEndTime + STAKING_SAFETY_BUFFER) - currentTime
     return Math.max(0, remaining)
   }
 
@@ -418,13 +429,8 @@ export function useStaking(address?: string) {
    * Get formatted stake information
    */
   const getFormattedStakeInfo = () => {
-    const info = stakeInfo as {
-      amount: bigint
-      timestamp: bigint
-      lockDuration: bigint
-    } | undefined
-    if (!info) return null
-    const { amount, timestamp, lockDuration } = info
+    if (!isStakeInfo(stakeInfo)) return null
+    const { amount, timestamp, lockDuration } = stakeInfo
     if (!amount || amount === 0n) return null
 
     return {
@@ -439,7 +445,7 @@ export function useStaking(address?: string) {
       stakedDate: new Date(Number(timestamp) * 1000),
       unlockDate:
         lockDuration && lockDuration > 0n
-          ? new Date((Number(timestamp) + Number(lockDuration) + 60) * 1000) // Include safety buffer
+          ? new Date((Number(timestamp) + Number(lockDuration) + STAKING_SAFETY_BUFFER) * 1000) // Include safety buffer
           : null,
       hasPriorityQueue: hasPriorityQueue ?? false,
       canAccessGrandWar: canAccessGrandWar ?? false,
