@@ -42,17 +42,47 @@ const requiredEnvVars = {
 // Validate required environment variables
 const validateEnv = () => {
   const missing: string[] = []
+  const invalid: string[] = []
 
   if (!requiredEnvVars.NEXT_PUBLIC_WUXIA_TOKEN_ADDRESS) missing.push('NEXT_PUBLIC_WUXIA_TOKEN_ADDRESS')
   if (!requiredEnvVars.NEXT_PUBLIC_ITEM_STORE_ADDRESS) missing.push('NEXT_PUBLIC_ITEM_STORE_ADDRESS')
   if (!requiredEnvVars.NEXT_PUBLIC_STAKING_ADDRESS) missing.push('NEXT_PUBLIC_STAKING_ADDRESS')
   if (!requiredEnvVars.NEXT_PUBLIC_GAME_RESULTS_RECORDER_ADDRESS) missing.push('NEXT_PUBLIC_GAME_RESULTS_RECORDER_ADDRESS')
 
+  // Validate WalletConnect Project ID is not a placeholder
+  const wcProjectId = requiredEnvVars.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
+  const placeholderPatterns = [
+    'your_walletconnect',
+    'your_actual',
+    'placeholder',
+    'your_project_id',
+    'example',
+    'test'
+  ]
+
+  if (wcProjectId && placeholderPatterns.some(pattern =>
+    wcProjectId.toLowerCase().includes(pattern)
+  )) {
+    invalid.push('NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID (appears to be a placeholder)')
+  }
+
   // Throw errors for missing required env vars in ALL environments
   // This prevents runtime errors when deploying to staging/testnet
-  if (missing.length > 0) {
-    const errorMsg = `Missing required environment variables: ${missing.join(', ')}`
-    // Always throw to catch configuration issues early
+  if (missing.length > 0 || invalid.length > 0) {
+    const errors = []
+    if (missing.length > 0) {
+      errors.push(`Missing: ${missing.join(', ')}`)
+    }
+    if (invalid.length > 0) {
+      errors.push(`Invalid: ${invalid.join(', ')}`)
+    }
+
+    const errorMsg = `Environment Configuration Error:\n${errors.join('\n')}`
+
+    if (invalid.length > 0) {
+      errorMsg += '\n\nGet your WalletConnect Project ID from: https://cloud.walletconnect.com/'
+    }
+
     throw new Error(errorMsg)
   }
 }

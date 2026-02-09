@@ -6,7 +6,7 @@ import { useItemStore } from '@/lib/blockchain/hooks/useItemStore'
 import { useStaking } from '@/lib/blockchain/hooks/useStaking'
 import { BoostType, SubscriptionTier } from '@/lib/blockchain/types'
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { STAKING_LIMITS, TOKEN_DECIMALS, parseUnits } from '@/lib/blockchain/config'
+import { STAKING_LIMITS, TOKEN_DECIMALS, parseUnits, MONAD_TESTNET } from '@/lib/blockchain/config'
 
 /**
  * Constants for default values
@@ -175,38 +175,29 @@ export default function BlockchainPage() {
   }, [selectedStakeAmount, selectedLockDuration, stake, validateStakeAmount, needsApproval])
 
   /**
-   * Handle approval with race condition fix
-   * CRITICAL FIX: Calculate amount once to avoid closure staleness
+   * Handle approval with proper async handling
+   * FIXED: Remove stale needsApproval check after refetch
    */
   const handleApprove = useCallback(async () => {
     setTxError(null)
     setTxSuccess(null)
     setTxHash(null)
 
-    // Calculate amount ONCE before any async operations
-    // This prevents staleness from closure after refetchAllowance()
-    const amount = Number(selectedStakeAmount)
-    const amountInWei = parseUnits(amount.toString(), TOKEN_DECIMALS)
-
     const result = await approveStaking()
 
     if (result.success) {
-      // CRITICAL FIX: Refetch allowance after approval to prevent race condition
+      // Refetch allowance to update hook state
+      // Note: We DON'T re-check needsApproval here to avoid race condition
+      // The allowance will be updated by the time user tries to stake
       await refetchAllowance()
 
       setTxSuccess('Contract approved! You can now stake your tokens.')
       setTxHash(result.hash || null)
       setShowApproval(false)
-
-      // Re-check if we still need approval after refetching
-      // Uses the pre-calculated amountInWei to avoid closure issues
-      if (needsApproval(amountInWei)) {
-        setTxError('Approval successful but amount still exceeds allowance. Please try a smaller amount.')
-      }
     } else {
       setTxError(result.error || 'Approval failed')
     }
-  }, [approveStaking, refetchAllowance, needsApproval, selectedStakeAmount])
+  }, [approveStaking, refetchAllowance])
 
   /**
    * Handle buy boost with error handling
@@ -266,7 +257,7 @@ export default function BlockchainPage() {
    * Get explorer URL for transaction
    */
   const getExplorerUrl = useCallback((hash: string) => {
-    return `https://monadvision.xyz/tx/${hash}`
+    return `${MONAD_TESTNET.blockExplorers.default.url}/tx/${hash}`
   }, [])
 
   // Optimize animation positions with useMemo
