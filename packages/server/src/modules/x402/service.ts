@@ -44,14 +44,27 @@ export class X402Service {
 
   /**
    * Verify x402 payment
+   * ⚠️ SECURITY: Currently in stub mode - always returns true
+   * MUST implement actual verification before production deployment
    */
-  async verifyPayment(_paymentId: string): Promise<boolean> {
-    // TODO: Implement actual x402 verification
-    // In production:
-    // const response = await axios.get(`${config.x402.facilitatorUrl}/payments/${paymentId}`)
-    // return response.data.status === 'completed'
+  async verifyPayment(paymentId: string): Promise<boolean> {
+    // Check if running in stub mode (for development/hackathon only)
+    if (process.env.X402_STUB_MODE === 'true') {
+      console.warn(`⚠️  X402 PAYMENT VERIFICATION IN STUB MODE`)
+      console.warn(`   Payment ID: ${paymentId}`)
+      console.warn(`   This is NOT secure and should NEVER be used in production!`)
+      return true
+    }
 
-    return true
+    // TODO: Implement actual x402 verification for production
+    // const response = await axios.get(`${config.x402.facilitatorUrl}/payments/${paymentId}`)
+    // if (response.data.status !== 'completed') {
+    //   throw new Error(`Payment ${paymentId} not completed`)
+    // }
+    // return true
+
+    // For now, throw error to prevent insecure deployment
+    throw new Error('X402 payment verification not implemented. Set X402_STUB_MODE=true for development only.')
   }
 
   /**

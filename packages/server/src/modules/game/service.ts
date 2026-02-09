@@ -11,17 +11,25 @@ export class GameService {
     tier: 'bronze' | 'silver' | 'gold',
     entryFeeMon: number
   ) {
-    const arenaId = tier === 'bronze' ? 1 : tier === 'silver' ? 2 : 3
-
-    return await GameModel.create({
+    const game = await GameModel.create({
       game_type: 'arena',
       arena_tier: tier,
-      arena_id: arenaId,
+      arena_id: tier === 'bronze' ? 1 : tier === 'silver' ? 2 : 3,
       entry_fee_mon: entryFeeMon,
       max_agents: config.game.maxAgentsPerGame,
       min_agents_to_start: config.game.minAgentsToStart,
       phase: 'recruiting'
     })
+
+    // Audit log game creation
+    console.log('🔍 AUDIT: Game created', {
+      gameId: game.id,
+      tier,
+      entryFeeMon,
+      arenaId: game.arena_id
+    })
+
+    return game
   }
 
   /**
@@ -81,7 +89,7 @@ export class GameService {
   async joinGame(gameId: string, agentId: string) {
     const { transaction } = await import('../models/database.js')
 
-    return await transaction(async (client) => {
+    const result = await transaction(async (client) => {
       // Check if already joined within transaction
       const existingResult = await client.query(
         'SELECT * FROM game_agents WHERE game_id = $1 AND agent_id = $2',
@@ -103,6 +111,15 @@ export class GameService {
 
       return { success: true }
     })
+
+    // Audit log agent join
+    console.log('🔍 AUDIT: Agent joined game', {
+      gameId,
+      agentId,
+      timestamp: new Date().toISOString()
+    })
+
+    return result
   }
 
   /**
@@ -150,6 +167,14 @@ export class GameService {
     agentId: string,
     action: any
   ) {
+    // SECURITY: Verify agent is in the game before allowing action
+    const agentInGame = await GameAgentModel.findByGameIdAndAgentId(gameId, agentId)
+    if (!agentInGame) {
+      const error = new Error('Agent is not participating in this game')
+      error.name = 'ForbiddenError'
+      throw error
+    }
+
     // Get current tick
     const game = await GameModel.findById(gameId)
 

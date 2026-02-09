@@ -6,6 +6,7 @@ import { rateLimit } from 'elysia-rate-limit'
 import { logger } from './plugins/logger.js'
 import { database } from './plugins/database.js'
 import { jwtPlugin } from './plugins/jwt.js'
+import { audit } from './plugins/audit.js'
 import { validateConfig } from './config/index.js'
 import { authRoutes } from './modules/auth/index.js'
 import { gameRoutes } from './modules/game/index.js'
@@ -23,6 +24,7 @@ const app = new Elysia({
   .use(logger())
   .use(database())
   .use(jwtPlugin())
+  .use(audit())
   .use(rateLimit({
     duration: 60000, // 1 minute
     max: 100, // 100 requests per minute
@@ -31,7 +33,9 @@ const app = new Elysia({
   }))
   .use(
     cors({
-      origin: true,
+      origin: process.env.NODE_ENV === 'production'
+        ? ['https://one-hour-dynasty.vercel.app', 'https://yourdomain.com'] // Whitelist in production
+        : true, // Allow all origins in development
       credentials: true
     })
   )
@@ -75,6 +79,9 @@ const app = new Elysia({
   .onError(({ code, error, set }) => {
     console.error('Error:', error)
 
+    // Generate unique request ID for debugging
+    const requestId = crypto.randomUUID().slice(0, 8)
+
     if (code === 'VALIDATION') {
       set.status = 400
       return {
@@ -86,15 +93,24 @@ const app = new Elysia({
     if (code === 'NOT_FOUND') {
       set.status = 404
       return {
-        error: 'Not found',
-        message: (error as Error).message
+        error: 'Not found'
       }
     }
 
     set.status = 500
-    return {
-      error: 'Internal server error',
-      message: (error as Error).message
+    // Sanitize error messages in production
+    if (config.nodeEnv === 'production') {
+      return {
+        error: 'Internal server error',
+        requestId // For debugging, logs should map requestId to full error
+      }
+    } else {
+      // Detailed errors in development
+      return {
+        error: 'Internal server error',
+        message: (error as Error).message,
+        requestId
+      }
     }
   })
   .listen(process.env.PORT || 3001)

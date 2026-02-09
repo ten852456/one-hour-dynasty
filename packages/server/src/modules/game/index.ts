@@ -2,6 +2,7 @@ import { Elysia, t } from 'elysia'
 import { jwtPlugin } from '../../plugins/jwt.js'
 import { database } from '../../plugins/database.js'
 import { gameService } from './service.js'
+import { GameAgentModel } from '../../models/GameAgentModel.js'
 import {
   SubmitActionSchema,
   GameStateSchema,
@@ -110,11 +111,21 @@ export const gameRoutes = new Elysia({
           return { error: 'Unauthorized', message: 'Invalid token' }
         }
 
+        // Verify agent is in the game before allowing action
+        const agentInGame = await GameAgentModel.findByGameIdAndAgentId(body.gameId, payload.agentId as string)
+
+        if (!agentInGame) {
+          set.status = 403
+          return { error: 'Forbidden', message: 'Agent is not participating in this game' }
+        }
+
         const action = await gameService.submitAction(
           body.gameId,
           payload.agentId as string,
           body.action
         )
+
+        // Broadcast to WebSocket subscribers
 
         // Broadcast to WebSocket subscribers
         const connections = gameConnections.get(body.gameId)
@@ -134,8 +145,12 @@ export const gameRoutes = new Elysia({
         set.status = 201
         return action
       } catch (error: any) {
-        set.status = error.message.includes('not found') ? 404 : 500
-        return { error: 'Failed to submit action', message: error.message }
+        const isForbidden = error.name === 'ForbiddenError'
+        set.status = isForbidden ? 403 : (error.message.includes('not found') ? 404 : 500)
+        return {
+          error: isForbidden ? 'Forbidden' : 'Failed to submit action',
+          message: error.message
+        }
       }
     },
     {
@@ -165,17 +180,55 @@ export const gameRoutes = new Elysia({
       console.log('🔌 Test WebSocket closed, socket ID:', ws.data.socketId, 'code:', code)
     }
   })
-  // WebSocket /ws/game/:gameId - Game state updates
+  // WebSocket /ws/game/:gameId - Game state updates (with authentication)
   .ws('/ws/game/:gameId', {
-    open(ws) {
+    async open(ws) {
       const gameId = ws.data.params.gameId
-      // Use unique socket ID because Elysia creates different proxy objects per hook
-      // See: https://github.com/elysiajs/elysia/issues/XXXX
+
+      // Extract token from query parameters
+      const token = new URL(ws.data.params.url, 'http://localhost').searchParams.get('token')
+
+      if (!token) {
+        ws.close(4001, 'Missing authentication token')
+        console.log(`❌ WebSocket rejected for game ${gameId}: No token provided`)
+        return
+      }
+
+      // Verify JWT token
+      let payload
+      try {
+        const { jwt: jwtFn } = await import('@elysiajs/jwt')
+        const jwt = jwtFn({ name: 'jwt', secret: (await import('../config/index.js')).default.jwt.secret })
+
+        payload = await jwt.verify(token)
+
+        if (!payload || !payload.agentId) {
+          ws.close(4002, 'Invalid authentication token')
+          console.log(`❌ WebSocket rejected for game ${gameId}: Invalid token`)
+          return
+        }
+      } catch (error) {
+        ws.close(4003, 'Authentication failed')
+        console.log(`❌ WebSocket rejected for game ${gameId}: Auth error`)
+        return
+      }
+
+      // Verify agent is actually in this game
+      const agentInGame = await GameAgentModel.findByGameIdAndAgentId(gameId, payload.agentId)
+
+      if (!agentInGame) {
+        ws.close(4003, 'Not authorized for this game')
+        console.log(`❌ WebSocket rejected for game ${gameId}: Agent ${payload.agentId} not in game`)
+        return
+      }
+
+      // Authentication successful - set up connection
       const socketId = crypto.randomUUID()
       ws.data.socketId = socketId
+      ws.data.agentId = payload.agentId
       ws.data.lastHeartbeat = Date.now()
 
-      console.log(`🔌 WebSocket opened for game ${gameId}, socket: ${socketId}`)
+      console.log(`🔌 WebSocket opened for game ${gameId}, socket: ${socketId}, agent: ${payload.agentId}`)
 
       if (!gameConnections.has(gameId)) {
         gameConnections.set(gameId, new Map())
@@ -188,6 +241,7 @@ export const gameRoutes = new Elysia({
         type: 'connected',
         gameId,
         socketId,
+        agentId: payload.agentId,
         timestamp: Date.now()
       })
     },

@@ -114,8 +114,8 @@ async function runTests() {
       // If we get here, game exists and action was submitted
       if (!result.tick) throw new Error('Unexpected response')
     } catch (error) {
-      // Expected: game not found (404)
-      if (!error.message.includes('404')) throw error
+      // Expected: game not found (404) or forbidden (403 if agent not in game)
+      if (!error.message.includes('404') && !error.message.includes('403')) throw error
     }
   }))
 
