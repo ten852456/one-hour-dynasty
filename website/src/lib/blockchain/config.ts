@@ -6,6 +6,17 @@ import { injected, walletConnect } from 'wagmi/connectors'
 import { parseUnits, formatUnits, getAddress } from 'viem'
 import WuxiaTokenAbi from './abis/WuxiaToken.json'
 
+// Import validation and error handling utilities
+export { validateStakeAmountInput } from './validation'
+export {
+  parseTransactionError,
+  UserRejectedError,
+  InsufficientFundsError,
+  BlockchainError,
+  InsufficientAllowanceError,
+  ContractExecutionError,
+} from './errors'
+
 // Re-export viem utilities for use in other modules
 export { parseUnits, formatUnits, getAddress }
 
@@ -77,7 +88,7 @@ const validateEnv = () => {
       errors.push(`Invalid: ${invalid.join(', ')}`)
     }
 
-    const errorMsg = `Environment Configuration Error:\n${errors.join('\n')}`
+    let errorMsg = `Environment Configuration Error:\n${errors.join('\n')}`
 
     if (invalid.length > 0) {
       errorMsg += '\n\nGet your WalletConnect Project ID from: https://cloud.walletconnect.com/'
@@ -267,8 +278,16 @@ export const STAKING_SAFETY_BUFFER = Number(process.env.NEXT_PUBLIC_STAKING_SAFE
 /**
  * Monad-specific gas settings
  *
- * IMPORTANT: On Monad, gas is charged on gas-limit (not gas-used)
- * Set gas limits accurately to avoid overpaying
+ * ⚠️ CRITICAL: On Monad, gas is charged on gas-limit (not gas-used)
+ * This means setting gas limits too high wastes user funds!
+ *
+ * TODO: These limits are based on Ethereum patterns and need testing on Monad testnet.
+ * Recommended actions:
+ * 1. Deploy to Monad testnet
+ * 2. Execute each transaction type
+ * 3. Check actual gas usage in explorer
+ * 4. Update limits to actual usage + 10% buffer
+ * 5. Consider implementing dynamic gas estimation
  */
 export const GAS_LIMITS = {
   TOKEN_TRANSFER: 100_000n,
@@ -417,173 +436,6 @@ export async function getTransactionReceipt(
   return {
     status: receipt.status === 'success' ? 'success' : 'reverted',
   }
-}
-
-// ============================================
-// Error Types
-// ============================================
-
-/**
- * Custom error types for better error handling
- */
-export class BlockchainError extends Error {
-  constructor(message: string, public code?: string) {
-    super(message)
-    this.name = 'BlockchainError'
-  }
-}
-
-export class UserRejectedError extends BlockchainError {
-  constructor() {
-    super('User rejected the transaction', 'USER_REJECTED')
-    this.name = 'UserRejectedError'
-  }
-}
-
-export class InsufficientFundsError extends BlockchainError {
-  constructor() {
-    super('Insufficient funds to complete the transaction', 'INSUFFICIENT_FUNDS')
-    this.name = 'InsufficientFundsError'
-  }
-}
-
-export class NetworkError extends BlockchainError {
-  constructor(message: string) {
-    super(message, 'NETWORK_ERROR')
-    this.name = 'NetworkError'
-  }
-}
-
-export class InsufficientAllowanceError extends BlockchainError {
-  constructor() {
-    super('Please approve the contract to spend your tokens first.', 'INSUFFICIENT_ALLOWANCE')
-    this.name = 'InsufficientAllowanceError'
-  }
-}
-
-export class ContractExecutionError extends BlockchainError {
-  constructor(message: string) {
-    super(message, 'CONTRACT_EXECUTION')
-    this.name = 'ContractExecutionError'
-  }
-}
-
-/**
- * Human-readable error message mappings
- * Maps technical blockchain errors to user-friendly messages
- */
-const ERROR_MESSAGE_MAP: Record<string, string> = {
-  // User rejection errors
-  'User rejected': 'Transaction was cancelled in your wallet.',
-  'User rejected the request': 'Transaction was cancelled in your wallet.',
-
-  // Insufficient balance errors
-  'insufficient funds': 'You don\'t have enough tokens to complete this transaction.',
-  'exceeds balance': 'You don\'t have enough tokens to complete this transaction.',
-  'insufficient balance': 'You don\'t have enough tokens to complete this transaction.',
-
-  // Allowance errors
-  'insufficient allowance': 'Please approve the contract to spend your tokens first.',
-  'allowance': 'Please increase your token approval in your wallet.',
-
-  // Network errors
-  'network': 'Network error. Please check your connection and try again.',
-  'timeout': 'Transaction timed out. Please try again.',
-  'rate limit': 'Too many requests. Please wait a moment and try again.',
-
-  // Contract execution errors
-  'reverted': 'Transaction failed. The contract execution reverted.',
-  'gas required exceeds': 'Transaction failed: Insufficient gas for execution.',
-  'execution reverted': 'Transaction failed: Contract execution reverted.',
-}
-
-/**
- * Parse and categorize blockchain errors with user-friendly messages
- */
-export function parseTransactionError(error: unknown): BlockchainError {
-  if (error instanceof BlockchainError) {
-    return error
-  }
-
-  if (error instanceof Error) {
-    const errorMessage = error.message.toLowerCase()
-
-    // Check for user rejection (multiple patterns)
-    if (
-      error.name === 'UserRejectedRequestError' ||
-      errorMessage.includes('user rejected') ||
-      errorMessage.includes('user cancelled') ||
-      errorMessage.includes('user denied')
-    ) {
-      return new UserRejectedError()
-    }
-
-    // Check for insufficient funds (multiple patterns)
-    if (
-      errorMessage.includes('insufficient funds') ||
-      errorMessage.includes('exceeds balance') ||
-      errorMessage.includes('insufficient balance') ||
-      errorMessage.includes('underpriced')
-    ) {
-      return new InsufficientFundsError()
-    }
-
-    // Check for insufficient allowance
-    if (
-      errorMessage.includes('insufficient allowance') ||
-      errorMessage.includes('allowance exceeded')
-    ) {
-      return new InsufficientAllowanceError()
-    }
-
-    // Check for network errors
-    if (
-      errorMessage.includes('network') ||
-      errorMessage.includes('timeout') ||
-      errorMessage.includes('rate limit') ||
-      error.name === 'NetworkError' ||
-      error.name === 'TimeoutError'
-    ) {
-      return new NetworkError(ERROR_MESSAGE_MAP['network'] || error.message)
-    }
-
-    // Check for contract execution errors
-    if (
-      errorMessage.includes('reverted') ||
-      errorMessage.includes('execution reverted') ||
-      errorMessage.includes('gas required')
-    ) {
-      // Try to extract revert reason if present
-      const revertReasonMatch = error.message.match(/reason\s*["']?([^"']+)["']?/i)
-      const reason = revertReasonMatch
-        ? `Transaction failed: ${revertReasonMatch[1]}`
-        : 'Transaction failed. Please check the contract conditions and try again.'
-      return new ContractExecutionError(reason)
-    }
-
-    // Check for specific known errors and provide friendly messages
-    for (const [key, friendlyMessage] of Object.entries(ERROR_MESSAGE_MAP)) {
-      if (errorMessage.includes(key.toLowerCase())) {
-        return new BlockchainError(friendlyMessage)
-      }
-    }
-
-    // Default: return original error message if no mapping found
-    return new BlockchainError(error.message)
-  }
-
-  // Fallback for non-Error objects
-  if (typeof error === 'string') {
-    const errorMessage = error.toLowerCase()
-    for (const [key, friendlyMessage] of Object.entries(ERROR_MESSAGE_MAP)) {
-      if (errorMessage.includes(key.toLowerCase())) {
-        return new BlockchainError(friendlyMessage)
-      }
-    }
-    return new BlockchainError(error)
-  }
-
-  return new BlockchainError('An unknown error occurred. Please try again.')
 }
 
 /**

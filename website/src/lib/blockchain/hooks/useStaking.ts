@@ -88,27 +88,32 @@ export function useStaking(address?: string) {
     },
   })
 
+  // Type guard to safely check if value is a bigint
+  const isBigInt = (value: unknown): value is bigint => {
+    return typeof value === 'bigint'
+  }
+
   // Build staking tiers from contract data
   const stakingTiers: StakingTier[] = [
     {
       name: 'Priority Queue',
-      stakeAmount: (priorityStake as bigint | undefined) || parseUnits('1000', TOKEN_DECIMALS),
-      stakeAmountFormatted: Number(formatUnits((priorityStake as bigint | undefined) || parseUnits('1000', TOKEN_DECIMALS), TOKEN_DECIMALS)).toLocaleString(),
-      stakeAmountRaw: formatUnits((priorityStake as bigint | undefined) || parseUnits('1000', TOKEN_DECIMALS), TOKEN_DECIMALS),
+      stakeAmount: isBigInt(priorityStake) ? priorityStake : parseUnits('1000', TOKEN_DECIMALS),
+      stakeAmountFormatted: Number(formatUnits(isBigInt(priorityStake) ? priorityStake : parseUnits('1000', TOKEN_DECIMALS), TOKEN_DECIMALS)).toLocaleString(),
+      stakeAmountRaw: formatUnits(isBigInt(priorityStake) ? priorityStake : parseUnits('1000', TOKEN_DECIMALS), TOKEN_DECIMALS),
       benefits: ['Skip matchmaking queue'],
     },
     {
       name: 'Grand War',
-      stakeAmount: (grandWarStake as bigint | undefined) || parseUnits('5000', TOKEN_DECIMALS),
-      stakeAmountFormatted: Number(formatUnits((grandWarStake as bigint | undefined) || parseUnits('5000', TOKEN_DECIMALS), TOKEN_DECIMALS)).toLocaleString(),
-      stakeAmountRaw: formatUnits((grandWarStake as bigint | undefined) || parseUnits('5000', TOKEN_DECIMALS), TOKEN_DECIMALS),
+      stakeAmount: isBigInt(grandWarStake) ? grandWarStake : parseUnits('5000', TOKEN_DECIMALS),
+      stakeAmountFormatted: Number(formatUnits(isBigInt(grandWarStake) ? grandWarStake : parseUnits('5000', TOKEN_DECIMALS), TOKEN_DECIMALS)).toLocaleString(),
+      stakeAmountRaw: formatUnits(isBigInt(grandWarStake) ? grandWarStake : parseUnits('5000', TOKEN_DECIMALS), TOKEN_DECIMALS),
       benefits: ['Skip matchmaking queue', 'Access to Grand War tier'],
     },
     {
       name: 'Governance',
-      stakeAmount: (governanceStake as bigint | undefined) || parseUnits('10000', TOKEN_DECIMALS),
-      stakeAmountFormatted: Number(formatUnits((governanceStake as bigint | undefined) || parseUnits('10000', TOKEN_DECIMALS), TOKEN_DECIMALS)).toLocaleString(),
-      stakeAmountRaw: formatUnits((governanceStake as bigint | undefined) || parseUnits('10000', TOKEN_DECIMALS), TOKEN_DECIMALS),
+      stakeAmount: isBigInt(governanceStake) ? governanceStake : parseUnits('10000', TOKEN_DECIMALS),
+      stakeAmountFormatted: Number(formatUnits(isBigInt(governanceStake) ? governanceStake : parseUnits('10000', TOKEN_DECIMALS), TOKEN_DECIMALS)).toLocaleString(),
+      stakeAmountRaw: formatUnits(isBigInt(governanceStake) ? governanceStake : parseUnits('10000', TOKEN_DECIMALS), TOKEN_DECIMALS),
       benefits: [
         'Skip matchmaking queue',
         'Access to Grand War tier',
@@ -402,11 +407,27 @@ export function useStaking(address?: string) {
   /**
    * Calculate if user can unstake based on lock period
    *
-   * SECURITY WARNING: This uses client-side time for UI display only.
-   * The actual unstake transaction will revert if the lock period hasn't expired.
-   * Users cannot bypass the blockchain's time check, but the UI may show incorrect info.
+   * ⚠️ SECURITY WARNING: Client-side time calculation
    *
-   * TODO: Add canUnstake() view function to contract for authoritative answer
+   * This function uses client-side (browser) time to check if the lock period has expired.
+   * If the user's clock is skewed (wrong time zone, incorrect system time, etc.),
+   * the UI will show incorrect information:
+   * - Clock ahead: User can unstake in UI but transaction reverts
+   * - Clock behind: User can't unstake in UI but transaction would succeed
+   *
+   * PROTECTION: The blockchain still enforces the correct time, so users cannot
+   * unstake early. They'll just get confusing error messages if their clock is wrong.
+   *
+   * TODO: Implement on-chain canUnstake() view function for authoritative answer
+   *
+   * Suggested contract implementation:
+   * ```solidity
+   * function canUnstake(address user) external view returns (bool) {
+   *     Stake memory stake = stakes[user];
+   *     if (stake.amount == 0) return true;  // No stake
+   *     return block.timestamp >= stake.timestamp + stake.lockDuration;
+   * }
+   * ```
    *
    * Uses blockchain timestamp (from stakeInfo) with safety buffer
    */
