@@ -17,6 +17,16 @@ export {
   ContractExecutionError,
 } from './errors'
 
+// Export gas estimation utilities
+export {
+  estimateTransactionGas,
+  estimateAllTransactionTypes,
+  formatGasEstimate,
+  generateGasReport,
+} from './gasEstimation'
+
+export type { GasEstimate } from './gasEstimation'
+
 // Re-export viem utilities for use in other modules
 export { parseUnits, formatUnits, getAddress }
 

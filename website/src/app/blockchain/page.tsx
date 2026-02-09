@@ -12,6 +12,7 @@ import {
   parseUnits,
   MONAD_TESTNET,
 } from "@/lib/blockchain/config";
+import { TransactionStatus, LoadingSkeleton } from "@/components/blockchain";
 
 /**
  * Constants for default values
@@ -459,9 +460,13 @@ export default function BlockchainPage() {
             <div className="flex gap-3">
               <div className="bg-gradient-to-br from-red-950/50 to-black border border-red-900/50 rounded-lg px-4 py-2 text-center min-w-[120px]">
                 <p className="text-xs text-gray-400">Balance</p>
-                <p className="text-lg font-bold text-yellow-400">
-                  {isLoading ? "..." : balanceFormatted}
-                </p>
+                {isLoading ? (
+                  <LoadingSkeleton variant="balance" className="mx-auto mt-1" />
+                ) : (
+                  <p className="text-lg font-bold text-yellow-400" aria-live="polite">
+                    {balanceFormatted}
+                  </p>
+                )}
               </div>
               {subscriptionInfo?.isActive && (
                 <div className="bg-gradient-to-br from-red-950/50 to-black border border-green-900/50 rounded-lg px-4 py-2 text-center min-w-[120px]">
@@ -482,36 +487,22 @@ export default function BlockchainPage() {
             </div>
           </div>
 
-          {/* Transaction Error/Success Messages */}
-          {txError && (
-            <div
-              className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg"
-              role="alert"
-            >
-              <p className="text-red-400 text-sm">{txError}</p>
-            </div>
-          )}
-          {txSuccess && (
-            <div
-              className="mb-4 p-3 bg-green-500/20 border border-green-500/50 rounded-lg"
-              role="status"
-            >
-              <p className="text-green-400 text-sm mb-2">{txSuccess}</p>
-              {txHash && (
-                <a
-                  href={getExplorerUrl(txHash)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-green-300 text-xs hover:text-green-200 underline"
-                >
-                  View transaction →
-                </a>
-              )}
-            </div>
-          )}
+          {/* Transaction Status - Now using unified component */}
+          <TransactionStatus
+            isPending={isTxPending}
+            success={txSuccess}
+            error={txError}
+            txHash={txHash}
+            explorerUrl={MONAD_TESTNET.blockExplorers.default.url}
+            onClear={() => {
+              setTxSuccess(null);
+              setTxError(null);
+              setTxHash(null);
+            }}
+          />
 
           {/* Tabs */}
-          <div className="flex gap-2 border-b border-red-900/30">
+          <div className="flex gap-2 border-b border-red-900/30" role="tablist" aria-label="Blockchain navigation">
             <button
               onClick={() => setActiveTab("overview")}
               className={`px-4 py-2 text-sm font-medium transition-all border-b-2 ${
@@ -519,6 +510,10 @@ export default function BlockchainPage() {
                   ? "text-yellow-400 border-yellow-400"
                   : "text-gray-400 border-transparent hover:text-gray-300"
               }`}
+              role="tab"
+              aria-selected={activeTab === "overview"}
+              aria-controls="overview-panel"
+              id="overview-tab"
             >
               Overview
             </button>
@@ -529,6 +524,10 @@ export default function BlockchainPage() {
                   ? "text-yellow-400 border-yellow-400"
                   : "text-gray-400 border-transparent hover:text-gray-300"
               }`}
+              role="tab"
+              aria-selected={activeTab === "enhancements"}
+              aria-controls="enhancements-panel"
+              id="enhancements-tab"
             >
               Enhancements
             </button>
@@ -539,6 +538,10 @@ export default function BlockchainPage() {
                   ? "text-yellow-400 border-yellow-400"
                   : "text-gray-400 border-transparent hover:text-gray-300"
               }`}
+              role="tab"
+              aria-selected={activeTab === "memberships"}
+              aria-controls="memberships-panel"
+              id="memberships-tab"
             >
               Memberships
             </button>
@@ -559,7 +562,12 @@ export default function BlockchainPage() {
         <div className="bg-gradient-to-br from-red-950/50 to-black border-2 border-red-900/50 rounded-xl p-6 backdrop-blur-sm">
           {/* Overview Tab */}
           {activeTab === "overview" && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div
+              role="tabpanel"
+              id="overview-panel"
+              aria-labelledby="overview-tab"
+              className="grid grid-cols-1 md:grid-cols-3 gap-4"
+            >
               {/* Balance Card */}
               <div className="bg-black/50 border border-red-900/30 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
@@ -568,9 +576,14 @@ export default function BlockchainPage() {
                     WUXIA Balance
                   </h3>
                 </div>
-                <p className="text-2xl font-bold text-white">
-                  {isLoading ? "..." : balanceFormatted}
-                </p>
+                <div className="p-2">
+                  <p className="text-2xl font-bold text-white">
+                    {isLoading ? (
+                      <LoadingSkeleton variant="balance" className="mx-auto" />
+                    ) : (
+                      <span aria-live="polite">{balanceFormatted}</span>
+                    )}
+                  </p>
                 <p className="text-xs text-gray-500 mt-1">
                   Total: {totalSupplyFormatted}
                 </p>
@@ -840,7 +853,11 @@ export default function BlockchainPage() {
                         }
                         className="w-full px-3 py-2 bg-gray-900/50 border border-red-900/50 rounded text-white text-sm focus:outline-none focus:border-yellow-500/60"
                         placeholder="0"
+                        aria-describedby="lock-duration-description"
                       />
+                      <p id="lock-duration-description" className="text-xs text-gray-500 mt-1">
+                        Number of days to lock tokens (0 = no lock)
+                      </p>
                     </div>
                     <button
                       onClick={handleStake}

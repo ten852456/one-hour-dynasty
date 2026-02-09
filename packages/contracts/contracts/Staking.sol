@@ -109,4 +109,36 @@ contract Staking is Ownable, ReentrancyGuard, Errors {
     function getStake(address user) external view returns (Stake memory) {
         return stakes[user];
     }
+
+    /**
+     * @dev Check if user can unstake based on lock period
+     * @param user Address to check
+     * @return bool True if user can unstake, false otherwise
+     *
+     * Returns true if:
+     * - User has no stake (amount == 0), or
+     * - User's lock period has expired (block.timestamp >= timestamp + lockDuration), or
+     * - User's stake has no lock duration (lockDuration == 0)
+     *
+     * This provides an authoritative on-chain check that replaces client-side
+     * time calculations, preventing UI confusion from clock skew.
+     */
+    function canUnstake(address user) external view returns (bool) {
+        Stake memory userStake = stakes[user];
+        uint256 amount = uint256(userStake.amount);
+
+        // No stake means nothing to unstake
+        if (amount == 0) {
+            return true;
+        }
+
+        // No lock duration means can unstake anytime
+        if (userStake.lockDuration == 0) {
+            return true;
+        }
+
+        // Check if lock period has expired
+        uint256 lockEndTime = uint256(userStake.timestamp) + uint256(userStake.lockDuration);
+        return block.timestamp >= lockEndTime;
+    }
 }

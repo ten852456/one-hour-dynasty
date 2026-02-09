@@ -185,6 +185,19 @@ export function useStaking(address?: string) {
     },
   })
 
+  // Check if user can unstake (on-chain authoritative check)
+  const { data: canUnstakeOnChain, refetch: refetchCanUnstake } = useReadContract({
+    address: CONTRACTS.STAKING,
+    abi: StakingAbi.abi,
+    functionName: 'canUnstake',
+    args: address ? [address as `0x${string}`] : undefined,
+    config,
+    query: {
+      enabled: !!address,
+      staleTime: 10_000, // Refresh frequently for accurate UI
+    },
+  })
+
   // Write operations
   const { writeContract, data: txHash, isPending, error } = useWriteContract({ config })
 
@@ -303,6 +316,7 @@ export function useStaking(address?: string) {
       // Only refetch if transaction was successful
       if (receipt.status === 'success') {
         await refetchStake()
+        await refetchCanUnstake()
       }
 
       return { hash: currentTxHash, success: true, receipt }
@@ -340,6 +354,7 @@ export function useStaking(address?: string) {
       // Only refetch if transaction was successful
       if (receipt.status === 'success') {
         await refetchStake()
+        await refetchCanUnstake()
       }
 
       return { hash: currentTxHash, success: true, receipt }
@@ -395,6 +410,7 @@ export function useStaking(address?: string) {
       // Only refetch if transaction was successful
       if (receipt.status === 'success') {
         await refetchStake()
+        await refetchCanUnstake()
       }
 
       return { hash: currentTxHash, success: true, receipt }
@@ -405,33 +421,30 @@ export function useStaking(address?: string) {
   }
 
   /**
-   * Calculate if user can unstake based on lock period
+   * Check if user can unstake based on lock period
    *
-   * ⚠️ SECURITY WARNING: Client-side time calculation
+   * ✅ SECURITY: Uses on-chain authoritative check
    *
-   * This function uses client-side (browser) time to check if the lock period has expired.
-   * If the user's clock is skewed (wrong time zone, incorrect system time, etc.),
-   * the UI will show incorrect information:
-   * - Clock ahead: User can unstake in UI but transaction reverts
-   * - Clock behind: User can't unstake in UI but transaction would succeed
+   * This function now uses the on-chain canUnstake() view function which provides
+   * the authoritative answer from the blockchain. This eliminates any issues with
+   * client-side clock skew.
    *
-   * PROTECTION: The blockchain still enforces the correct time, so users cannot
-   * unstake early. They'll just get confusing error messages if their clock is wrong.
+   * The on-chain function checks:
+   * - If user has no stake (amount == 0) → returns true
+   * - If stake has no lock duration → returns true
+   * - If lock period has expired (block.timestamp >= timestamp + lockDuration) → returns true
+   * - Otherwise → returns false
    *
-   * TODO: Implement on-chain canUnstake() view function for authoritative answer
-   *
-   * Suggested contract implementation:
-   * ```solidity
-   * function canUnstake(address user) external view returns (bool) {
-   *     Stake memory stake = stakes[user];
-   *     if (stake.amount == 0) return true;  // No stake
-   *     return block.timestamp >= stake.timestamp + stake.lockDuration;
-   * }
-   * ```
-   *
-   * Uses blockchain timestamp (from stakeInfo) with safety buffer
+   * Fallback: If on-chain data is not available, uses client-side calculation with
+   * safety buffer (for backwards compatibility during deployment).
    */
   const canUnstake = () => {
+    // Prefer on-chain authoritative check
+    if (typeof canUnstakeOnChain === 'boolean') {
+      return canUnstakeOnChain
+    }
+
+    // Fallback to client-side calculation if on-chain data not available
     if (!isStakeInfo(stakeInfo)) return false
     const { amount, timestamp, lockDuration } = stakeInfo
     if (!amount || amount === 0n) return false
@@ -516,7 +529,9 @@ export function useStaking(address?: string) {
 
     // Utilities
     refetchStake,
+    refetchCanUnstake,
     canUnstake: canUnstake(),
+    canUnstakeOnChain,
     lockTimeRemaining: getLockTimeRemaining(),
 
     // Loading state
