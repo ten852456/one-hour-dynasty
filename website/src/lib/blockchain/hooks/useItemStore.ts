@@ -201,8 +201,8 @@ export function useItemStore(address?: string) {
       })
 
       // Transaction submitted successfully, txHash is now available in hook state
-      // We need to wait for the next tick to read the updated txHash
-      await new Promise(resolve => setTimeout(resolve, 0))
+      // Use setImmediate for reliable next-tick waiting (better than setTimeout)
+      await new Promise(resolve => setImmediate(resolve))
 
       // Now read the current txHash from hook state (not from closure)
       const currentTxHash = txHash
@@ -241,7 +241,7 @@ export function useItemStore(address?: string) {
       })
 
       // Wait for state update to get current txHash (React batching)
-      await new Promise(resolve => setTimeout(resolve, 0))
+      await new Promise(resolve => setImmediate(resolve))
 
       const currentTxHash = txHash
 

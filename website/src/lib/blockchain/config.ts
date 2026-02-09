@@ -48,15 +48,12 @@ const validateEnv = () => {
   if (!requiredEnvVars.NEXT_PUBLIC_STAKING_ADDRESS) missing.push('NEXT_PUBLIC_STAKING_ADDRESS')
   if (!requiredEnvVars.NEXT_PUBLIC_GAME_RESULTS_RECORDER_ADDRESS) missing.push('NEXT_PUBLIC_GAME_RESULTS_RECORDER_ADDRESS')
 
-  // In production, throw errors for missing required env vars
+  // Throw errors for missing required env vars in ALL environments
+  // This prevents runtime errors when deploying to staging/testnet
   if (missing.length > 0) {
     const errorMsg = `Missing required environment variables: ${missing.join(', ')}`
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error(errorMsg)
-    }
-    if (typeof window !== 'undefined') {
-      console.error(errorMsg)
-    }
+    // Always throw to catch configuration issues early
+    throw new Error(errorMsg)
   }
 }
 

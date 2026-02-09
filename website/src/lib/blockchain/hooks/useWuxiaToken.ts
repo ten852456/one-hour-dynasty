@@ -77,7 +77,7 @@ export function useWuxiaToken(address?: string) {
       })
 
       // Wait for state update to get current txHash
-      await new Promise(resolve => setTimeout(resolve, 0))
+      await new Promise(resolve => setImmediate(resolve))
       const currentTxHash = txHash
 
       if (!currentTxHash) {
@@ -110,7 +110,7 @@ export function useWuxiaToken(address?: string) {
       })
 
       // Wait for state update to get current txHash
-      await new Promise(resolve => setTimeout(resolve, 0))
+      await new Promise(resolve => setImmediate(resolve))
       const currentTxHash = txHash
 
       if (!currentTxHash) {
@@ -144,7 +144,7 @@ export function useWuxiaToken(address?: string) {
       })
 
       // Wait for state update to get current txHash
-      await new Promise(resolve => setTimeout(resolve, 0))
+      await new Promise(resolve => setImmediate(resolve))
       const currentTxHash = txHash
 
       if (!currentTxHash) {
