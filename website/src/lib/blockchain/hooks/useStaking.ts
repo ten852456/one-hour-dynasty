@@ -217,17 +217,21 @@ export function useStaking(address?: string) {
         gas: getGasLimit('TOKEN_TRANSFER'),
       })
 
-      if (!txHash) {
+      // Wait for state update to get current txHash
+      await new Promise(resolve => setTimeout(resolve, 0))
+      const currentTxHash = txHash
+
+      if (!currentTxHash) {
         return { success: false, error: 'Transaction failed - no hash returned' }
       }
 
       // Wait for transaction confirmation
-      await getTransactionReceipt(txHash)
+      await getTransactionReceipt(currentTxHash)
 
       // Refetch allowance
       await refetchAllowance()
 
-      return { hash: txHash, success: true }
+      return { hash: currentTxHash, success: true }
     } catch (err) {
       const parsedError = parseTransactionError(err)
       return { success: false, error: parsedError.message }
@@ -280,19 +284,23 @@ export function useStaking(address?: string) {
         gas: getGasLimit('STAKE'),
       })
 
-      if (!txHash) {
+      // Wait for state update to get current txHash
+      await new Promise(resolve => setTimeout(resolve, 0))
+      const currentTxHash = txHash
+
+      if (!currentTxHash) {
         return { success: false, error: 'Transaction failed - no hash returned' }
       }
 
       // Wait for transaction confirmation before refetching
-      const receipt = await getTransactionReceipt(txHash)
+      const receipt = await getTransactionReceipt(currentTxHash)
 
       // Only refetch if transaction was successful
       if (receipt.status === 'success') {
         await refetchStake()
       }
 
-      return { hash: txHash, success: true, receipt }
+      return { hash: currentTxHash, success: true, receipt }
     } catch (err) {
       const parsedError = parseTransactionError(err)
       return { success: false, error: parsedError.message }
@@ -313,19 +321,23 @@ export function useStaking(address?: string) {
         gas: getGasLimit('UNSTAKE'),
       })
 
-      if (!txHash) {
+      // Wait for state update to get current txHash
+      await new Promise(resolve => setTimeout(resolve, 0))
+      const currentTxHash = txHash
+
+      if (!currentTxHash) {
         return { success: false, error: 'Transaction failed - no hash returned' }
       }
 
       // Wait for transaction confirmation before refetching
-      const receipt = await getTransactionReceipt(txHash)
+      const receipt = await getTransactionReceipt(currentTxHash)
 
       // Only refetch if transaction was successful
       if (receipt.status === 'success') {
         await refetchStake()
       }
 
-      return { hash: txHash, success: true, receipt }
+      return { hash: currentTxHash, success: true, receipt }
     } catch (err) {
       const parsedError = parseTransactionError(err)
       return { success: false, error: parsedError.message }
@@ -364,19 +376,23 @@ export function useStaking(address?: string) {
         gas: getGasLimit('INCREASE_STAKE'),
       })
 
-      if (!txHash) {
+      // Wait for state update to get current txHash
+      await new Promise(resolve => setTimeout(resolve, 0))
+      const currentTxHash = txHash
+
+      if (!currentTxHash) {
         return { success: false, error: 'Transaction failed - no hash returned' }
       }
 
       // Wait for transaction confirmation before refetching
-      const receipt = await getTransactionReceipt(txHash)
+      const receipt = await getTransactionReceipt(currentTxHash)
 
       // Only refetch if transaction was successful
       if (receipt.status === 'success') {
         await refetchStake()
       }
 
-      return { hash: txHash, success: true, receipt }
+      return { hash: currentTxHash, success: true, receipt }
     } catch (err) {
       const parsedError = parseTransactionError(err)
       return { success: false, error: parsedError.message }

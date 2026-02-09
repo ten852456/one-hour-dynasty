@@ -90,6 +90,18 @@ export interface ItemStoreOperationResult {
 }
 
 /**
+ * Type guard for bigint arrays
+ * Validates that data is an array of bigint values
+ */
+function isBigIntArray(data: unknown): data is readonly bigint[] {
+  return (
+    Array.isArray(data) &&
+    data.length > 0 &&
+    data.every(item => typeof item === 'bigint')
+  )
+}
+
+/**
  * Hook for ItemStore operations (boosts and subscriptions)
  * Enhanced with on-chain tier tracking (secure, not manipulatable)
  */
@@ -178,6 +190,8 @@ export function useItemStore(address?: string) {
     try {
       if (!address) throw new Error('No address connected')
 
+      // writeContract updates txHash state upon completion
+      // If it throws, transaction was rejected
       await writeContract({
         address: CONTRACTS.ITEM_STORE,
         abi: ItemStoreAbi.abi,
@@ -186,17 +200,24 @@ export function useItemStore(address?: string) {
         gas: getGasLimit('BOOST_PURCHASE'),
       })
 
-      if (!txHash) {
+      // Transaction submitted successfully, txHash is now available in hook state
+      // We need to wait for the next tick to read the updated txHash
+      await new Promise(resolve => setTimeout(resolve, 0))
+
+      // Now read the current txHash from hook state (not from closure)
+      const currentTxHash = txHash
+
+      if (!currentTxHash) {
         return { success: false, error: 'Transaction failed - no hash returned' }
       }
 
       // Wait for transaction confirmation
-      await getTransactionReceipt(txHash)
+      await getTransactionReceipt(currentTxHash)
 
       // Refetch prices after purchase
       await refetchBoostPrices()
 
-      return { hash: txHash, success: true }
+      return { hash: currentTxHash, success: true }
     } catch (err) {
       const parsedError = parseTransactionError(err)
       return { success: false, error: parsedError.message }
@@ -219,12 +240,17 @@ export function useItemStore(address?: string) {
         gas: getGasLimit('SUBSCRIPTION_PURCHASE'),
       })
 
-      if (!txHash) {
+      // Wait for state update to get current txHash (React batching)
+      await new Promise(resolve => setTimeout(resolve, 0))
+
+      const currentTxHash = txHash
+
+      if (!currentTxHash) {
         return { success: false, error: 'Transaction failed - no hash returned' }
       }
 
       // Wait for transaction confirmation
-      const receipt = await getTransactionReceipt(txHash)
+      const receipt = await getTransactionReceipt(currentTxHash)
 
       // Refetch subscription info after successful transaction
       if (receipt.status === 'success') {
@@ -232,7 +258,7 @@ export function useItemStore(address?: string) {
         await refetchUserTier()
       }
 
-      return { hash: txHash, success: true, receipt }
+      return { hash: currentTxHash, success: true, receipt }
     } catch (err) {
       const parsedError = parseTransactionError(err)
       return { success: false, error: parsedError.message }
@@ -243,12 +269,13 @@ export function useItemStore(address?: string) {
    * Get all boosts with pricing
    */
   const getAllBoosts = (): Boost[] => {
-    const prices = boostPrices as readonly bigint[] | undefined
-    if (!prices || prices.length === 0) return []
+    // Validate boostPrices is actually a bigint array
+    if (!isBigIntArray(boostPrices)) return []
+
     return Object.values(BoostType)
       .filter((k): k is BoostType => typeof k === 'number')
       .map((type) => {
-        const price = prices[type] || 0n
+        const price = boostPrices![type] || 0n
         return {
           type,
           ...BOOSTS[type],
@@ -262,12 +289,13 @@ export function useItemStore(address?: string) {
    * Get all subscriptions with pricing
    */
   const getAllSubscriptions = (): Subscription[] => {
-    const prices = subscriptionPrices as readonly bigint[] | undefined
-    if (!prices || prices.length === 0) return []
+    // Validate subscriptionPrices is actually a bigint array
+    if (!isBigIntArray(subscriptionPrices)) return []
+
     return Object.values(SubscriptionTier)
       .filter((k): k is SubscriptionTier => typeof k === 'number')
       .map((tier) => {
-        const price = prices[tier] || 0n
+        const price = subscriptionPrices![tier] || 0n
         return {
           tier,
           ...SUBSCRIPTIONS[tier],

@@ -70,22 +70,47 @@ export default function BlockchainPage() {
   }, [])
 
   /**
-   * Validate stake amount with proper precision checking
+   * Validate stake amount with comprehensive checks
+   * Blocks unsafe inputs, validates range, precision, and format
    */
   const validateStakeAmountInput = useCallback((value: string): { valid: boolean; error?: string } => {
-    // Check for scientific notation
+    // Empty input is valid (user hasn't finished typing)
+    if (!value) return { valid: true }
+
+    // Check for scientific notation (block before number conversion)
     if (value.toLowerCase().includes('e')) {
       return { valid: false, error: 'Scientific notation not allowed' }
     }
 
+    // Check for negative numbers
+    if (value.startsWith('-')) {
+      return { valid: false, error: 'Negative amounts are not allowed' }
+    }
+
+    // Check for multiple decimal points
+    if ((value.match(/\./g) || []).length > 1) {
+      return { valid: false, error: 'Invalid number format' }
+    }
+
+    // Check for non-numeric characters (except decimal point)
+    if (!/^[\d.]+$/.test(value)) {
+      return { valid: false, error: 'Only numbers and decimal points are allowed' }
+    }
+
+    // Now it's safe to convert to number
     const numValue = Number(value)
 
-    // Check if it's a valid number
-    if (value && isNaN(numValue)) {
+    // Check if conversion resulted in valid number
+    if (isNaN(numValue)) {
       return { valid: false, error: 'Please enter a valid number' }
     }
 
-    // Check decimal places
+    // Check for numbers that are too large (beyond safe integer range)
+    if (!Number.isFinite(numValue)) {
+      return { valid: false, error: 'Number is too large' }
+    }
+
+    // Check decimal places precision
     if (value.includes('.')) {
       const decimalPlaces = value.split('.')[1]?.length || 0
       if (decimalPlaces > INPUT_CONSTRAINTS.DECIMAL_PLACES) {
@@ -93,14 +118,12 @@ export default function BlockchainPage() {
       }
     }
 
-    // Check range
-    if (value && !isNaN(numValue)) {
-      if (numValue < STAKING_LIMITS.MIN_AMOUNT) {
-        return { valid: false, error: `Amount must be at least ${STAKING_LIMITS.MIN_AMOUNT} WUXIA` }
-      }
-      if (numValue > STAKING_LIMITS.MAX_AMOUNT) {
-        return { valid: false, error: `Amount cannot exceed ${STAKING_LIMITS.MAX_AMOUNT.toLocaleString()} WUXIA` }
-      }
+    // Check range limits
+    if (numValue < STAKING_LIMITS.MIN_AMOUNT) {
+      return { valid: false, error: `Amount must be at least ${STAKING_LIMITS.MIN_AMOUNT} WUXIA` }
+    }
+    if (numValue > STAKING_LIMITS.MAX_AMOUNT) {
+      return { valid: false, error: `Amount cannot exceed ${STAKING_LIMITS.MAX_AMOUNT.toLocaleString()} WUXIA` }
     }
 
     return { valid: true }
@@ -153,18 +176,22 @@ export default function BlockchainPage() {
 
   /**
    * Handle approval with race condition fix
-   * CRITICAL FIX: Refetch allowance after approval to prevent stale data
+   * CRITICAL FIX: Calculate amount once to avoid closure staleness
    */
   const handleApprove = useCallback(async () => {
     setTxError(null)
     setTxSuccess(null)
     setTxHash(null)
 
+    // Calculate amount ONCE before any async operations
+    // This prevents staleness from closure after refetchAllowance()
+    const amount = Number(selectedStakeAmount)
+    const amountInWei = parseUnits(amount.toString(), TOKEN_DECIMALS)
+
     const result = await approveStaking()
 
     if (result.success) {
       // CRITICAL FIX: Refetch allowance after approval to prevent race condition
-      // User might have approved in another tab/window
       await refetchAllowance()
 
       setTxSuccess('Contract approved! You can now stake your tokens.')
@@ -172,9 +199,7 @@ export default function BlockchainPage() {
       setShowApproval(false)
 
       // Re-check if we still need approval after refetching
-      // This handles the case where user approved in another tab
-      const amount = Number(selectedStakeAmount)
-      const amountInWei = parseUnits(amount.toString(), TOKEN_DECIMALS)
+      // Uses the pre-calculated amountInWei to avoid closure issues
       if (needsApproval(amountInWei)) {
         setTxError('Approval successful but amount still exceeds allowance. Please try a smaller amount.')
       }
