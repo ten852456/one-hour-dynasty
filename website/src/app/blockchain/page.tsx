@@ -6,7 +6,7 @@ import { useItemStore } from '@/lib/blockchain/hooks/useItemStore'
 import { useStaking } from '@/lib/blockchain/hooks/useStaking'
 import { BoostType, SubscriptionTier } from '@/lib/blockchain/types'
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { STAKING_LIMITS, TOKEN_DECIMALS } from '@/lib/blockchain/config'
+import { STAKING_LIMITS, TOKEN_DECIMALS, parseUnits } from '@/lib/blockchain/config'
 
 /**
  * Constants for default values
@@ -132,7 +132,7 @@ export default function BlockchainPage() {
     }
 
     // Check if approval is needed first
-    const amountInWei = BigInt(Math.floor(amount * Number(TOKEN_DECIMALS)))
+    const amountInWei = parseUnits(amount.toString(), TOKEN_DECIMALS)
     if (needsApproval(amountInWei)) {
       setShowApproval(true)
       return
@@ -174,7 +174,7 @@ export default function BlockchainPage() {
       // Re-check if we still need approval after refetching
       // This handles the case where user approved in another tab
       const amount = Number(selectedStakeAmount)
-      const amountInWei = BigInt(Math.floor(amount * Number(TOKEN_DECIMALS)))
+      const amountInWei = parseUnits(amount.toString(), TOKEN_DECIMALS)
       if (needsApproval(amountInWei)) {
         setTxError('Approval successful but amount still exceeds allowance. Please try a smaller amount.')
       }
@@ -243,61 +243,6 @@ export default function BlockchainPage() {
   const getExplorerUrl = useCallback((hash: string) => {
     return `https://monadvision.xyz/tx/${hash}`
   }, [])
-  const handleApprove = useCallback(async () => {
-    setTxError(null)
-    setTxSuccess(null)
-
-    const result = await approveStaking()
-
-    if (result.success) {
-      setTxSuccess('Contract approved! You can now stake your tokens.')
-      setShowApproval(false)
-    } else {
-      setTxError(result.error || 'Approval failed')
-    }
-  }, [approveStaking])
-
-  // Handle buy boost with error handling
-  const handleBuyBoost = useCallback(async (boostType: BoostType) => {
-    setTxError(null)
-    setTxSuccess(null)
-
-    const result = await buyBoost(boostType)
-
-    if (result.success) {
-      setTxSuccess('Boost purchased successfully!')
-    } else {
-      setTxError(result.error || 'Transaction failed')
-    }
-  }, [buyBoost])
-
-  // Handle buy subscription with error handling
-  const handleBuySubscription = useCallback(async (tier: SubscriptionTier) => {
-    setTxError(null)
-    setTxSuccess(null)
-
-    const result = await buySubscription(tier)
-
-    if (result.success) {
-      setTxSuccess('Subscription purchased successfully!')
-    } else {
-      setTxError(result.error || 'Transaction failed')
-    }
-  }, [buySubscription])
-
-  // Handle unstake with error handling
-  const handleUnstake = useCallback(async () => {
-    setTxError(null)
-    setTxSuccess(null)
-
-    const result = await unstake()
-
-    if (result.success) {
-      setTxSuccess('Unstake transaction submitted!')
-    } else {
-      setTxError(result.error || 'Transaction failed')
-    }
-  }, [unstake])
 
   // Optimize animation positions with useMemo
   const animationParticles = useMemo(() => {
@@ -320,11 +265,7 @@ export default function BlockchainPage() {
       const timer = setTimeout(() => setTxSuccess(null), 5000)
       return () => clearTimeout(timer)
     }
-  }, [txSuccess])
-
-  // Loading state
-  const isLoading = isLoadingToken || isLoadingItemStore || isLoadingStaking
-  const isTxPending = itemStorePending || stakingPending
+  }, [txSuccess, setTxSuccess])
 
   if (!isConnected) {
     return (
@@ -806,12 +747,13 @@ export default function BlockchainPage() {
 
         {/* Transaction Status */}
         {isTxPending && (
-          <div className="fixed bottom-4 right-4 bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-3 rounded-lg shadow-2xl shadow-red-900/50 flex items-center gap-3 border border-red-500/50">
+          <div className="fixed bottom-4 right-4 bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-3 rounded-lg shadow-2xl shadow-red-900/50 flex items-center gap-3 border border-red-500/50" role="status" aria-live="polite">
             <svg
               className="animate-spin h-5 w-5"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />

@@ -1,3 +1,5 @@
+/// <reference path="../../../types/abi.d.ts" />
+
 'use client'
 
 import { useReadContract, useWriteContract } from 'wagmi'
@@ -67,23 +69,23 @@ export function useStaking(address?: string) {
   const stakingTiers: StakingTier[] = [
     {
       name: 'Priority Queue',
-      stakeAmount: priorityStake || parseUnits('1000', TOKEN_DECIMALS),
-      stakeAmountFormatted: Number(formatUnits(priorityStake || parseUnits('1000', TOKEN_DECIMALS), TOKEN_DECIMALS)).toLocaleString(),
-      stakeAmountRaw: formatUnits(priorityStake || parseUnits('1000', TOKEN_DECIMALS), TOKEN_DECIMALS),
+      stakeAmount: (priorityStake as bigint | undefined) || parseUnits('1000', TOKEN_DECIMALS),
+      stakeAmountFormatted: Number(formatUnits((priorityStake as bigint | undefined) || parseUnits('1000', TOKEN_DECIMALS), TOKEN_DECIMALS)).toLocaleString(),
+      stakeAmountRaw: formatUnits((priorityStake as bigint | undefined) || parseUnits('1000', TOKEN_DECIMALS), TOKEN_DECIMALS),
       benefits: ['Skip matchmaking queue'],
     },
     {
       name: 'Grand War',
-      stakeAmount: grandWarStake || parseUnits('5000', TOKEN_DECIMALS),
-      stakeAmountFormatted: Number(formatUnits(grandWarStake || parseUnits('5000', TOKEN_DECIMALS), TOKEN_DECIMALS)).toLocaleString(),
-      stakeAmountRaw: formatUnits(grandWarStake || parseUnits('5000', TOKEN_DECIMALS), TOKEN_DECIMALS),
+      stakeAmount: (grandWarStake as bigint | undefined) || parseUnits('5000', TOKEN_DECIMALS),
+      stakeAmountFormatted: Number(formatUnits((grandWarStake as bigint | undefined) || parseUnits('5000', TOKEN_DECIMALS), TOKEN_DECIMALS)).toLocaleString(),
+      stakeAmountRaw: formatUnits((grandWarStake as bigint | undefined) || parseUnits('5000', TOKEN_DECIMALS), TOKEN_DECIMALS),
       benefits: ['Skip matchmaking queue', 'Access to Grand War tier'],
     },
     {
       name: 'Governance',
-      stakeAmount: governanceStake || parseUnits('10000', TOKEN_DECIMALS),
-      stakeAmountFormatted: Number(formatUnits(governanceStake || parseUnits('10000', TOKEN_DECIMALS), TOKEN_DECIMALS)).toLocaleString(),
-      stakeAmountRaw: formatUnits(governanceStake || parseUnits('10000', TOKEN_DECIMALS), TOKEN_DECIMALS),
+      stakeAmount: (governanceStake as bigint | undefined) || parseUnits('10000', TOKEN_DECIMALS),
+      stakeAmountFormatted: Number(formatUnits((governanceStake as bigint | undefined) || parseUnits('10000', TOKEN_DECIMALS), TOKEN_DECIMALS)).toLocaleString(),
+      stakeAmountRaw: formatUnits((governanceStake as bigint | undefined) || parseUnits('10000', TOKEN_DECIMALS), TOKEN_DECIMALS),
       benefits: [
         'Skip matchmaking queue',
         'Access to Grand War tier',
@@ -156,7 +158,7 @@ export function useStaking(address?: string) {
   })
 
   // Write operations
-  const { data: hash, writeContract: _writeContract, isPending, error } = useWriteContract({ config })
+  const { writeContract, data: txHash, isPending, error } = useWriteContract({ config })
 
   /**
    * Validate stake amount
@@ -184,13 +186,17 @@ export function useStaking(address?: string) {
       // This limits potential damage if contract is compromised
       const maxApproval = parseUnits(STAKING_LIMITS.MAX_AMOUNT.toString(), TOKEN_DECIMALS)
 
-      const txHash = await _writeContract({
+      await writeContract({
         address: CONTRACTS.WUXIA_TOKEN,
         abi: WuxiaTokenAbi.abi,
         functionName: 'approve',
         args: [CONTRACTS.STAKING, maxApproval], // Limited approval, not unlimited
         gas: getGasLimit('TOKEN_TRANSFER'),
       })
+
+      if (!txHash) {
+        return { success: false, error: 'Transaction failed - no hash returned' }
+      }
 
       // Wait for transaction confirmation
       await getTransactionReceipt(txHash)
@@ -209,7 +215,7 @@ export function useStaking(address?: string) {
    * Check if approval is needed
    */
   const needsApproval = (amount: bigint): boolean => {
-    const currentAllowance = allowance || 0n
+    const currentAllowance = (allowance as bigint | undefined) || 0n
     return currentAllowance < amount
   }
 
@@ -243,13 +249,17 @@ export function useStaking(address?: string) {
         }
       }
 
-      const txHash = await _writeContract({
+      await writeContract({
         address: CONTRACTS.STAKING,
         abi: StakingAbi.abi,
         functionName: 'stake',
         args: [amountInWei, BigInt(lockDuration)],
         gas: getGasLimit('STAKE'),
       })
+
+      if (!txHash) {
+        return { success: false, error: 'Transaction failed - no hash returned' }
+      }
 
       // Wait for transaction confirmation before refetching
       const receipt = await getTransactionReceipt(txHash)
@@ -273,12 +283,16 @@ export function useStaking(address?: string) {
     try {
       if (!address) throw new Error('No address connected')
 
-      const txHash = await _writeContract({
+      await writeContract({
         address: CONTRACTS.STAKING,
         abi: StakingAbi.abi,
         functionName: 'unstake',
         gas: getGasLimit('UNSTAKE'),
       })
+
+      if (!txHash) {
+        return { success: false, error: 'Transaction failed - no hash returned' }
+      }
 
       // Wait for transaction confirmation before refetching
       const receipt = await getTransactionReceipt(txHash)
@@ -319,13 +333,17 @@ export function useStaking(address?: string) {
         }
       }
 
-      const txHash = await _writeContract({
+      await writeContract({
         address: CONTRACTS.STAKING,
         abi: StakingAbi.abi,
         functionName: 'increaseStake',
         args: [amountInWei],
         gas: getGasLimit('INCREASE_STAKE'),
       })
+
+      if (!txHash) {
+        return { success: false, error: 'Transaction failed - no hash returned' }
+      }
 
       // Wait for transaction confirmation before refetching
       const receipt = await getTransactionReceipt(txHash)
@@ -344,19 +362,32 @@ export function useStaking(address?: string) {
 
   /**
    * Calculate if user can unstake based on lock period
-   * Uses blockchain timestamp with safety buffer to avoid client-side manipulation
+   *
+   * SECURITY WARNING: This uses client-side time for UI display only.
+   * The actual unstake transaction will revert if the lock period hasn't expired.
+   * Users cannot bypass the blockchain's time check, but the UI may show incorrect info.
+   *
+   * TODO: Add canUnstake() view function to contract for authoritative answer
+   *
+   * Uses blockchain timestamp (from stakeInfo) with safety buffer
    */
   const canUnstake = () => {
-    if (!stakeInfo) return false
-    const { amount, timestamp, lockDuration } = stakeInfo
+    const info = stakeInfo as {
+      amount: bigint
+      timestamp: bigint
+      lockDuration: bigint
+    } | undefined
+    if (!info) return false
+    const { amount, timestamp, lockDuration } = info
     if (!amount || amount === 0n) return false
     if (!lockDuration || lockDuration === 0n) return true
 
-    // Use blockchain timestamp
+    // Use blockchain timestamp from contract
     const lockEndTime = Number(timestamp) + Number(lockDuration)
 
-    // Add a 60 second safety buffer to account for block time variations
-    const safetyBuffer = 60
+    // Add a 5 MINUTE safety buffer (300 seconds) instead of 60
+    // This makes manipulation harder and accounts for clock skew
+    const safetyBuffer = 300
     const currentTime = Math.floor(Date.now() / 1000)
 
     return currentTime >= (lockEndTime + safetyBuffer)
@@ -367,8 +398,12 @@ export function useStaking(address?: string) {
    * Includes safety buffer
    */
   const getLockTimeRemaining = () => {
-    if (!stakeInfo) return 0
-    const { timestamp, lockDuration } = stakeInfo
+    const info = stakeInfo as {
+      timestamp: bigint
+      lockDuration: bigint
+    } | undefined
+    if (!info) return 0
+    const { timestamp, lockDuration } = info
     if (!lockDuration || lockDuration === 0n) return 0
 
     const lockEndTime = Number(timestamp) + Number(lockDuration)
@@ -383,8 +418,13 @@ export function useStaking(address?: string) {
    * Get formatted stake information
    */
   const getFormattedStakeInfo = () => {
-    if (!stakeInfo) return null
-    const { amount, timestamp, lockDuration } = stakeInfo
+    const info = stakeInfo as {
+      amount: bigint
+      timestamp: bigint
+      lockDuration: bigint
+    } | undefined
+    if (!info) return null
+    const { amount, timestamp, lockDuration } = info
     if (!amount || amount === 0n) return null
 
     return {
@@ -420,6 +460,7 @@ export function useStaking(address?: string) {
     // Allowance
     allowance: allowance ?? 0n,
     needsApproval,
+    refetchAllowance,
 
     // Operations (now with proper return types)
     stake,
@@ -441,6 +482,5 @@ export function useStaking(address?: string) {
     // Transaction state
     isPending,
     error,
-    txHash: hash,
   }
 }

@@ -1,3 +1,5 @@
+/// <reference path="../../../types/abi.d.ts" />
+
 'use client'
 
 import { useReadContract, useWriteContract } from 'wagmi'
@@ -54,7 +56,7 @@ export function useWuxiaToken(address?: string) {
   })
 
   // Write contract operations
-  const { data: hash, writeContract: _writeContract, isPending, error } = useWriteContract({ config })
+  const { writeContract, data: txHash, isPending, error } = useWriteContract({ config })
 
   /**
    * Mint tokens (owner only)
@@ -66,13 +68,17 @@ export function useWuxiaToken(address?: string) {
 
       const amountInWei = parseUnits(amount.toString(), TOKEN_DECIMALS)
 
-      const txHash = await _writeContract({
+      await writeContract({
         address: CONTRACTS.WUXIA_TOKEN,
         abi: WuxiaTokenAbi.abi,
         functionName: 'mint',
         args: [to as `0x${string}`, amountInWei],
         gas: getGasLimit('TOKEN_MINT'),
       })
+
+      if (!txHash) {
+        return { success: false, error: 'Transaction failed - no hash returned' }
+      }
 
       return { hash: txHash, success: true }
     } catch (err) {
@@ -91,13 +97,17 @@ export function useWuxiaToken(address?: string) {
 
       const amountInWei = parseUnits(amount.toString(), TOKEN_DECIMALS)
 
-      const txHash = await _writeContract({
+      await writeContract({
         address: CONTRACTS.WUXIA_TOKEN,
         abi: WuxiaTokenAbi.abi,
         functionName: 'burn',
         args: [amountInWei],
         gas: getGasLimit('TOKEN_TRANSFER'),
       })
+
+      if (!txHash) {
+        return { success: false, error: 'Transaction failed - no hash returned' }
+      }
 
       return { hash: txHash, success: true }
     } catch (err) {
@@ -117,13 +127,17 @@ export function useWuxiaToken(address?: string) {
 
       const amountInWei = parseUnits(amount.toString(), TOKEN_DECIMALS)
 
-      const txHash = await _writeContract({
+      await writeContract({
         address: CONTRACTS.WUXIA_TOKEN,
         abi: WuxiaTokenAbi.abi,
         functionName: 'transfer',
         args: [to as `0x${string}`, amountInWei],
         gas: getGasLimit('TOKEN_TRANSFER'),
       })
+
+      if (!txHash) {
+        return { success: false, error: 'Transaction failed - no hash returned' }
+      }
 
       return { hash: txHash, success: true }
     } catch (err) {
@@ -134,17 +148,17 @@ export function useWuxiaToken(address?: string) {
 
   // Format values safely
   const safeFormatUnits = (value: bigint | undefined, decimals: number): string => {
-    if (!value && value !== 0n) return '0'
+    if (value === undefined || value === null) return '0'
     return Number(formatUnits(value, decimals)).toFixed(2)
   }
 
   return {
     // Read state
-    totalSupply: totalSupply ?? 0n,
-    maxSupply: maxSupply ?? 0n,
-    balance: balance ?? 0n,
-    balanceFormatted: safeFormatUnits(balance, TOKEN_DECIMALS),
-    totalSupplyFormatted: safeFormatUnits(totalSupply, 0),
+    totalSupply: (totalSupply as bigint | undefined) ?? 0n,
+    maxSupply: (maxSupply as bigint | undefined) ?? 0n,
+    balance: (balance as bigint | undefined) ?? 0n,
+    balanceFormatted: safeFormatUnits(balance as bigint | undefined, TOKEN_DECIMALS),
+    totalSupplyFormatted: safeFormatUnits(totalSupply as bigint | undefined, 0),
 
     // Loading states
     isLoading: isLoadingTotalSupply || isLoadingBalance,
@@ -158,7 +172,7 @@ export function useWuxiaToken(address?: string) {
     // Transaction state
     isPending,
     error,
-    txHash: hash,
+    txHash,
 
     // Utility
     refetchBalance,

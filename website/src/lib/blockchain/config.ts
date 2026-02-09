@@ -1,6 +1,12 @@
+/// <reference path="../../types/abi.d.ts" />
+/// <reference path="../../types/global.d.ts" />
+
 import { http, createConfig } from 'wagmi'
 import { injected, walletConnect } from 'wagmi/connectors'
-import { parseUnits } from 'viem'
+import { parseUnits, formatUnits } from 'viem'
+
+// Re-export viem utilities for use in other modules
+export { parseUnits, formatUnits }
 
 /**
  * Monad-specific blockchain configuration
@@ -197,7 +203,9 @@ export const GAS_SETTINGS = {
  * Get gas limit for a specific transaction type
  */
 export function getGasLimit(type: keyof typeof GAS_SETTINGS): bigint {
-  return GAS_SETTINGS[type]
+  const value = GAS_SETTINGS[type]
+  // Ensure we always return bigint
+  return typeof value === 'bigint' ? value : BigInt(value)
 }
 
 // ============================================
@@ -315,6 +323,10 @@ export async function getTransactionReceipt(
   const { getPublicClient } = await import('wagmi/actions')
   const publicClient = await getPublicClient(config)
 
+  if (!publicClient) {
+    throw new Error('Unable to get public client')
+  }
+
   const receipt = await publicClient.waitForTransactionReceipt({
     hash: hash as `0x${string}`,
     confirmations,
@@ -405,6 +417,7 @@ export async function approveTokenSpending(
   amount: bigint = 2n ** 256n - 1n // MaxUint256 for unlimited approval
 ): Promise<`0x${string}`> {
   const { writeContract } = await import('wagmi/actions')
+  // @ts-expect-error - JSON module declaration exists in types/abi.d.ts
   const WuxiaTokenAbi = await import('../abis/WuxiaToken.json')
 
   const hash = await writeContract(config, {
@@ -432,6 +445,7 @@ export async function getTokenAllowance(
   spender: `0x${string}`
 ): Promise<bigint> {
   const { readContract } = await import('wagmi/actions')
+  // @ts-expect-error - JSON module declaration exists in types/abi.d.ts
   const WuxiaTokenAbi = await import('../abis/WuxiaToken.json')
 
   const allowance = await readContract(config, {

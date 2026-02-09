@@ -1,3 +1,5 @@
+/// <reference path="../../../types/abi.d.ts" />
+
 'use client'
 
 import { useReadContract, useWriteContract } from 'wagmi'
@@ -167,7 +169,7 @@ export function useItemStore(address?: string) {
   })
 
   // Write operations
-  const { data: hash, writeContract: _writeContract, isPending, error } = useWriteContract({ config })
+  const { writeContract, data: txHash, isPending, error } = useWriteContract({ config })
 
   /**
    * Buy a boost
@@ -176,13 +178,17 @@ export function useItemStore(address?: string) {
     try {
       if (!address) throw new Error('No address connected')
 
-      const txHash = await _writeContract({
+      await writeContract({
         address: CONTRACTS.ITEM_STORE,
         abi: ItemStoreAbi.abi,
         functionName: 'buyBoost',
         args: [boostType],
         gas: getGasLimit('BOOST_PURCHASE'),
       })
+
+      if (!txHash) {
+        return { success: false, error: 'Transaction failed - no hash returned' }
+      }
 
       // Wait for transaction confirmation
       await getTransactionReceipt(txHash)
@@ -205,13 +211,17 @@ export function useItemStore(address?: string) {
     try {
       if (!address) throw new Error('No address connected')
 
-      const txHash = await _writeContract({
+      await writeContract({
         address: CONTRACTS.ITEM_STORE,
         abi: ItemStoreAbi.abi,
         functionName: 'buySubscription',
         args: [tier],
         gas: getGasLimit('SUBSCRIPTION_PURCHASE'),
       })
+
+      if (!txHash) {
+        return { success: false, error: 'Transaction failed - no hash returned' }
+      }
 
       // Wait for transaction confirmation
       const receipt = await getTransactionReceipt(txHash)
@@ -233,11 +243,12 @@ export function useItemStore(address?: string) {
    * Get all boosts with pricing
    */
   const getAllBoosts = (): Boost[] => {
-    if (!boostPrices || boostPrices.length === 0) return []
+    const prices = boostPrices as readonly bigint[] | undefined
+    if (!prices || prices.length === 0) return []
     return Object.values(BoostType)
       .filter((k): k is BoostType => typeof k === 'number')
       .map((type) => {
-        const price = boostPrices[type] || 0n
+        const price = prices[type] || 0n
         return {
           type,
           ...BOOSTS[type],
@@ -251,11 +262,12 @@ export function useItemStore(address?: string) {
    * Get all subscriptions with pricing
    */
   const getAllSubscriptions = (): Subscription[] => {
-    if (!subscriptionPrices || subscriptionPrices.length === 0) return []
+    const prices = subscriptionPrices as readonly bigint[] | undefined
+    if (!prices || prices.length === 0) return []
     return Object.values(SubscriptionTier)
       .filter((k): k is SubscriptionTier => typeof k === 'number')
       .map((tier) => {
-        const price = subscriptionPrices[tier] || 0n
+        const price = prices[tier] || 0n
         return {
           tier,
           ...SUBSCRIPTIONS[tier],
@@ -329,6 +341,6 @@ export function useItemStore(address?: string) {
     // Transaction state
     isPending,
     error,
-    txHash: hash,
+    txHash,
   }
 }
