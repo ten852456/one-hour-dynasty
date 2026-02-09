@@ -33,12 +33,7 @@ export default function RootLayout({
       >
         <WagmiProvider>
           <Navigation />
-          <ErrorBoundary
-            onError={(error, errorInfo) => {
-              // Log to error tracking service (e.g., Sentry)
-              console.error('ErrorBoundary caught an error:', error, errorInfo);
-            }}
-          >
+          <ErrorBoundary>
             {children}
           </ErrorBoundary>
         </WagmiProvider>

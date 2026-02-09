@@ -4,6 +4,7 @@
 import { http, createConfig } from 'wagmi'
 import { injected, walletConnect } from 'wagmi/connectors'
 import { parseUnits, formatUnits, getAddress } from 'viem'
+import WuxiaTokenAbi from './abis/WuxiaToken.json'
 
 // Re-export viem utilities for use in other modules
 export { parseUnits, formatUnits, getAddress }
@@ -573,8 +574,6 @@ export async function approveTokenSpending(
   amount: bigint = 2n ** 256n - 1n // MaxUint256 for unlimited approval
 ): Promise<`0x${string}`> {
   const { writeContract } = await import('wagmi/actions')
-  // @ts-expect-error - JSON module declaration exists in types/abi.d.ts
-  const WuxiaTokenAbi = await import('../abis/WuxiaToken.json')
 
   const hash = await writeContract(config, {
     address: tokenAddress,
@@ -601,8 +600,6 @@ export async function getTokenAllowance(
   spender: `0x${string}`
 ): Promise<bigint> {
   const { readContract } = await import('wagmi/actions')
-  // @ts-expect-error - JSON module declaration exists in types/abi.d.ts
-  const WuxiaTokenAbi = await import('../abis/WuxiaToken.json')
 
   const allowance = await readContract(config, {
     address: tokenAddress,
