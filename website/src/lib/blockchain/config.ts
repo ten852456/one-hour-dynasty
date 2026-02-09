@@ -3,10 +3,10 @@
 
 import { http, createConfig } from 'wagmi'
 import { injected, walletConnect } from 'wagmi/connectors'
-import { parseUnits, formatUnits } from 'viem'
+import { parseUnits, formatUnits, getAddress } from 'viem'
 
 // Re-export viem utilities for use in other modules
-export { parseUnits, formatUnits }
+export { parseUnits, formatUnits, getAddress }
 
 /**
  * Monad-specific blockchain configuration
@@ -60,6 +60,42 @@ const validateEnv = () => {
 }
 
 validateEnv()
+
+// ============================================
+// Address Validation
+// ============================================
+
+/**
+ * Validate and normalize an Ethereum address
+ * Uses viem's getAddress to ensure checksummed format
+ *
+ * @param address - Address to validate (can be undefined)
+ * @param name - Friendly name for error messages
+ * @returns Validated checksummed address
+ * @throws Error if address is invalid in production
+ */
+function validateAddress(address: string | undefined, name: string): `0x${string}` {
+  if (!address) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(`Missing ${name} address`)
+    }
+    console.error(`Missing ${name} address`)
+    return '0x0000000000000000000000000000000000000000' as `0x${string}`
+  }
+
+  try {
+    return getAddress(address)
+  } catch (error) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(`Invalid ${name} address: ${address}`)
+    }
+    if (typeof window !== 'undefined') {
+      console.error(`Invalid ${name} address: ${address}`, error)
+    }
+    // Return a fallback address in development to prevent crashes
+    return '0x0000000000000000000000000000000000000000' as `0x${string}`
+  }
+}
 
 // ============================================
 // Chain Configuration
@@ -130,21 +166,28 @@ export const config = createConfig({
  * Deployed contract addresses on Monad Testnet
  * All addresses are loaded from environment variables to avoid magic numbers
  *
- * SECURITY: No fallback addresses in production - all addresses must be explicitly configured
+ * SECURITY: Addresses are validated for checksum format on initialization
  */
 export const CONTRACTS = {
-  WUXIA_TOKEN: requiredEnvVars.NEXT_PUBLIC_WUXIA_TOKEN_ADDRESS as `0x${string}`,
-  ITEM_STORE: requiredEnvVars.NEXT_PUBLIC_ITEM_STORE_ADDRESS as `0x${string}`,
-  STAKING: requiredEnvVars.NEXT_PUBLIC_STAKING_ADDRESS as `0x${string}`,
-  GAME_RESULTS_RECORDER: requiredEnvVars.NEXT_PUBLIC_GAME_RESULTS_RECORDER_ADDRESS as `0x${string}`,
+  WUXIA_TOKEN: validateAddress(requiredEnvVars.NEXT_PUBLIC_WUXIA_TOKEN_ADDRESS, 'WUXIA_TOKEN'),
+  ITEM_STORE: validateAddress(requiredEnvVars.NEXT_PUBLIC_ITEM_STORE_ADDRESS, 'ITEM_STORE'),
+  STAKING: validateAddress(requiredEnvVars.NEXT_PUBLIC_STAKING_ADDRESS, 'STAKING'),
+  GAME_RESULTS_RECORDER: validateAddress(requiredEnvVars.NEXT_PUBLIC_GAME_RESULTS_RECORDER_ADDRESS, 'GAME_RESULTS_RECORDER'),
 } as const
 
 /**
  * ERC-8004 addresses on Monad (agent identity & reputation)
+ * Validated for checksum format
  */
 export const ERC8004 = {
-  IDENTITY_REGISTRY: (process.env.NEXT_PUBLIC_IDENTITY_REGISTRY_ADDRESS || '0x8004A169FB4a3325136EB29fA0ceB6D2e539a432') as `0x${string}`,
-  REPUTATION_REGISTRY: (process.env.NEXT_PUBLIC_REPUTATION_REGISTRY_ADDRESS || '0x8004BAa17C55a88189AE136b182e5fdA19dE9b63') as `0x${string}`,
+  IDENTITY_REGISTRY: validateAddress(
+    process.env.NEXT_PUBLIC_IDENTITY_REGISTRY_ADDRESS || '0x8004A169FB4a3325136EB29fA0ceB6D2e539a432',
+    'IDENTITY_REGISTRY'
+  ),
+  REPUTATION_REGISTRY: validateAddress(
+    process.env.NEXT_PUBLIC_REPUTATION_REGISTRY_ADDRESS || '0x8004BAa17C55a88189AE136b182e5fdA19dE9b63',
+    'REPUTATION_REGISTRY'
+  ),
 } as const
 
 // ============================================
@@ -383,8 +426,51 @@ export class NetworkError extends BlockchainError {
   }
 }
 
+export class InsufficientAllowanceError extends BlockchainError {
+  constructor() {
+    super('Please approve the contract to spend your tokens first.', 'INSUFFICIENT_ALLOWANCE')
+    this.name = 'InsufficientAllowanceError'
+  }
+}
+
+export class ContractExecutionError extends BlockchainError {
+  constructor(message: string) {
+    super(message, 'CONTRACT_EXECUTION')
+    this.name = 'ContractExecutionError'
+  }
+}
+
 /**
- * Parse and categorize blockchain errors
+ * Human-readable error message mappings
+ * Maps technical blockchain errors to user-friendly messages
+ */
+const ERROR_MESSAGE_MAP: Record<string, string> = {
+  // User rejection errors
+  'User rejected': 'Transaction was cancelled in your wallet.',
+  'User rejected the request': 'Transaction was cancelled in your wallet.',
+
+  // Insufficient balance errors
+  'insufficient funds': 'You don\'t have enough tokens to complete this transaction.',
+  'exceeds balance': 'You don\'t have enough tokens to complete this transaction.',
+  'insufficient balance': 'You don\'t have enough tokens to complete this transaction.',
+
+  // Allowance errors
+  'insufficient allowance': 'Please approve the contract to spend your tokens first.',
+  'allowance': 'Please increase your token approval in your wallet.',
+
+  // Network errors
+  'network': 'Network error. Please check your connection and try again.',
+  'timeout': 'Transaction timed out. Please try again.',
+  'rate limit': 'Too many requests. Please wait a moment and try again.',
+
+  // Contract execution errors
+  'reverted': 'Transaction failed. The contract execution reverted.',
+  'gas required exceeds': 'Transaction failed: Insufficient gas for execution.',
+  'execution reverted': 'Transaction failed: Contract execution reverted.',
+}
+
+/**
+ * Parse and categorize blockchain errors with user-friendly messages
  */
 export function parseTransactionError(error: unknown): BlockchainError {
   if (error instanceof BlockchainError) {
@@ -392,25 +478,84 @@ export function parseTransactionError(error: unknown): BlockchainError {
   }
 
   if (error instanceof Error) {
-    // Check for user rejection
-    if (error.name === 'UserRejectedRequestError' || error.message.includes('User rejected')) {
+    const errorMessage = error.message.toLowerCase()
+
+    // Check for user rejection (multiple patterns)
+    if (
+      error.name === 'UserRejectedRequestError' ||
+      errorMessage.includes('user rejected') ||
+      errorMessage.includes('user cancelled') ||
+      errorMessage.includes('user denied')
+    ) {
       return new UserRejectedError()
     }
 
-    // Check for insufficient funds
-    if (error.message.includes('insufficient funds') || error.message.includes('exceeds balance')) {
+    // Check for insufficient funds (multiple patterns)
+    if (
+      errorMessage.includes('insufficient funds') ||
+      errorMessage.includes('exceeds balance') ||
+      errorMessage.includes('insufficient balance') ||
+      errorMessage.includes('underpriced')
+    ) {
       return new InsufficientFundsError()
     }
 
     // Check for insufficient allowance
-    if (error.message.includes('insufficient allowance') || error.message.includes('allowance')) {
-      return new BlockchainError('Insufficient allowance. Please approve the contract to spend your tokens first.', 'INSUFFICIENT_ALLOWANCE')
+    if (
+      errorMessage.includes('insufficient allowance') ||
+      errorMessage.includes('allowance exceeded')
+    ) {
+      return new InsufficientAllowanceError()
     }
 
+    // Check for network errors
+    if (
+      errorMessage.includes('network') ||
+      errorMessage.includes('timeout') ||
+      errorMessage.includes('rate limit') ||
+      error.name === 'NetworkError' ||
+      error.name === 'TimeoutError'
+    ) {
+      return new NetworkError(ERROR_MESSAGE_MAP['network'] || error.message)
+    }
+
+    // Check for contract execution errors
+    if (
+      errorMessage.includes('reverted') ||
+      errorMessage.includes('execution reverted') ||
+      errorMessage.includes('gas required')
+    ) {
+      // Try to extract revert reason if present
+      const revertReasonMatch = error.message.match(/reason\s*["']?([^"']+)["']?/i)
+      const reason = revertReasonMatch
+        ? `Transaction failed: ${revertReasonMatch[1]}`
+        : 'Transaction failed. Please check the contract conditions and try again.'
+      return new ContractExecutionError(reason)
+    }
+
+    // Check for specific known errors and provide friendly messages
+    for (const [key, friendlyMessage] of Object.entries(ERROR_MESSAGE_MAP)) {
+      if (errorMessage.includes(key.toLowerCase())) {
+        return new BlockchainError(friendlyMessage)
+      }
+    }
+
+    // Default: return original error message if no mapping found
     return new BlockchainError(error.message)
   }
 
-  return new BlockchainError('Unknown error occurred')
+  // Fallback for non-Error objects
+  if (typeof error === 'string') {
+    const errorMessage = error.toLowerCase()
+    for (const [key, friendlyMessage] of Object.entries(ERROR_MESSAGE_MAP)) {
+      if (errorMessage.includes(key.toLowerCase())) {
+        return new BlockchainError(friendlyMessage)
+      }
+    }
+    return new BlockchainError(error)
+  }
+
+  return new BlockchainError('An unknown error occurred. Please try again.')
 }
 
 /**

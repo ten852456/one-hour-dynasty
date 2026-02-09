@@ -290,7 +290,7 @@ export default function BlockchainPage() {
       const timer = setTimeout(() => setTxSuccess(null), 5000)
       return () => clearTimeout(timer)
     }
-  }, [txSuccess, setTxSuccess])
+  }, [txSuccess])
 
   if (!isConnected) {
     return (
