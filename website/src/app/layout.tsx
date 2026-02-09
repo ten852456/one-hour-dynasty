@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { WagmiProvider } from "@/components/WagmiProvider";
 import Navigation from "@/components/Navigation";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,7 +33,14 @@ export default function RootLayout({
       >
         <WagmiProvider>
           <Navigation />
-          {children}
+          <ErrorBoundary
+            onError={(error, errorInfo) => {
+              // Log to error tracking service (e.g., Sentry)
+              console.error('ErrorBoundary caught an error:', error, errorInfo);
+            }}
+          >
+            {children}
+          </ErrorBoundary>
         </WagmiProvider>
       </body>
     </html>

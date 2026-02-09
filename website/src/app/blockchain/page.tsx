@@ -5,8 +5,22 @@ import { useWuxiaToken } from '@/lib/blockchain/hooks/useWuxiaToken'
 import { useItemStore } from '@/lib/blockchain/hooks/useItemStore'
 import { useStaking } from '@/lib/blockchain/hooks/useStaking'
 import { BoostType, SubscriptionTier } from '@/lib/blockchain/types'
-import { useState, useMemo, useCallback } from 'react'
-import { STAKING_LIMITS } from '@/lib/blockchain/config'
+import { useState, useMemo, useCallback, useEffect } from 'react'
+import { STAKING_LIMITS, TOKEN_DECIMALS } from '@/lib/blockchain/config'
+
+/**
+ * Constants for default values
+ */
+const DEFAULT_STAKE_AMOUNT = '1000'
+const DEFAULT_LOCK_DURATION = '0'
+
+/**
+ * Input validation constraints
+ */
+const INPUT_CONSTRAINTS = {
+  DECIMAL_PLACES: 6, // Maximum decimal places for stake amount
+  MIN_STEP: '0.000001', // Minimum step for precision
+} as const
 
 export default function BlockchainPage() {
   const { address, isConnected } = useWalletConnection()
@@ -32,13 +46,15 @@ export default function BlockchainPage() {
     allowance,
     approveStaking,
     needsApproval,
+    refetchAllowance,
   } = useStaking(address)
 
-  const [selectedStakeAmount, setSelectedStakeAmount] = useState('1000')
-  const [selectedLockDuration, setSelectedLockDuration] = useState('0')
+  const [selectedStakeAmount, setSelectedStakeAmount] = useState(DEFAULT_STAKE_AMOUNT)
+  const [selectedLockDuration, setSelectedLockDuration] = useState(DEFAULT_LOCK_DURATION)
   const [stakeError, setStakeError] = useState<string | null>(null)
   const [txError, setTxError] = useState<string | null>(null)
   const [txSuccess, setTxSuccess] = useState<string | null>(null)
+  const [txHash, setTxHash] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'enhancements' | 'memberships' | 'offerings'>('overview')
   const [showApproval, setShowApproval] = useState(false)
 
@@ -53,24 +69,59 @@ export default function BlockchainPage() {
     setActiveTab('offerings')
   }, [])
 
+  /**
+   * Validate stake amount with proper precision checking
+   */
+  const validateStakeAmountInput = useCallback((value: string): { valid: boolean; error?: string } => {
+    // Check for scientific notation
+    if (value.toLowerCase().includes('e')) {
+      return { valid: false, error: 'Scientific notation not allowed' }
+    }
+
+    const numValue = Number(value)
+
+    // Check if it's a valid number
+    if (value && isNaN(numValue)) {
+      return { valid: false, error: 'Please enter a valid number' }
+    }
+
+    // Check decimal places
+    if (value.includes('.')) {
+      const decimalPlaces = value.split('.')[1]?.length || 0
+      if (decimalPlaces > INPUT_CONSTRAINTS.DECIMAL_PLACES) {
+        return { valid: false, error: `Maximum ${INPUT_CONSTRAINTS.DECIMAL_PLACES} decimal places allowed` }
+      }
+    }
+
+    // Check range
+    if (value && !isNaN(numValue)) {
+      if (numValue < STAKING_LIMITS.MIN_AMOUNT) {
+        return { valid: false, error: `Amount must be at least ${STAKING_LIMITS.MIN_AMOUNT} WUXIA` }
+      }
+      if (numValue > STAKING_LIMITS.MAX_AMOUNT) {
+        return { valid: false, error: `Amount cannot exceed ${STAKING_LIMITS.MAX_AMOUNT.toLocaleString()} WUXIA` }
+      }
+    }
+
+    return { valid: true }
+  }, [])
+
   // Validate stake amount on change
   const handleStakeAmountChange = useCallback((value: string) => {
     setSelectedStakeAmount(value)
     setStakeError(null)
 
-    const numValue = Number(value)
-    if (value && !isNaN(numValue)) {
-      const validation = validateStakeAmount(numValue)
-      if (!validation.valid) {
-        setStakeError(validation.error || null)
-      }
+    const validation = validateStakeAmountInput(value)
+    if (!validation.valid && value) {
+      setStakeError(validation.error || null)
     }
-  }, [validateStakeAmount])
+  }, [validateStakeAmountInput])
 
   // Handle stake transaction with error handling and approval flow
   const handleStake = useCallback(async () => {
     setTxError(null)
     setTxSuccess(null)
+    setTxHash(null)
 
     const amount = Number(selectedStakeAmount)
     const validation = validateStakeAmount(amount)
@@ -81,7 +132,8 @@ export default function BlockchainPage() {
     }
 
     // Check if approval is needed first
-    if (needsApproval(BigInt(amount * 1e18))) {
+    const amountInWei = BigInt(Math.floor(amount * Number(TOKEN_DECIMALS)))
+    if (needsApproval(amountInWei)) {
       setShowApproval(true)
       return
     }
@@ -90,14 +142,107 @@ export default function BlockchainPage() {
 
     if (result.success) {
       setTxSuccess('Staking transaction submitted!')
-      setSelectedStakeAmount('1000')
-      setSelectedLockDuration('0')
+      setTxHash(result.hash || null)
+      setSelectedStakeAmount(DEFAULT_STAKE_AMOUNT)
+      setSelectedLockDuration(DEFAULT_LOCK_DURATION)
+      setStakeError(null)
     } else {
       setTxError(result.error || 'Transaction failed')
     }
   }, [selectedStakeAmount, selectedLockDuration, stake, validateStakeAmount, needsApproval])
 
-  // Handle approval
+  /**
+   * Handle approval with race condition fix
+   * CRITICAL FIX: Refetch allowance after approval to prevent stale data
+   */
+  const handleApprove = useCallback(async () => {
+    setTxError(null)
+    setTxSuccess(null)
+    setTxHash(null)
+
+    const result = await approveStaking()
+
+    if (result.success) {
+      // CRITICAL FIX: Refetch allowance after approval to prevent race condition
+      // User might have approved in another tab/window
+      await refetchAllowance()
+
+      setTxSuccess('Contract approved! You can now stake your tokens.')
+      setTxHash(result.hash || null)
+      setShowApproval(false)
+
+      // Re-check if we still need approval after refetching
+      // This handles the case where user approved in another tab
+      const amount = Number(selectedStakeAmount)
+      const amountInWei = BigInt(Math.floor(amount * Number(TOKEN_DECIMALS)))
+      if (needsApproval(amountInWei)) {
+        setTxError('Approval successful but amount still exceeds allowance. Please try a smaller amount.')
+      }
+    } else {
+      setTxError(result.error || 'Approval failed')
+    }
+  }, [approveStaking, refetchAllowance, needsApproval, selectedStakeAmount])
+
+  /**
+   * Handle buy boost with error handling
+   */
+  const handleBuyBoost = useCallback(async (boostType: BoostType) => {
+    setTxError(null)
+    setTxSuccess(null)
+    setTxHash(null)
+
+    const result = await buyBoost(boostType)
+
+    if (result.success) {
+      setTxSuccess('Boost purchased successfully!')
+      setTxHash(result.hash || null)
+    } else {
+      setTxError(result.error || 'Transaction failed')
+    }
+  }, [buyBoost])
+
+  /**
+   * Handle buy subscription with error handling
+   */
+  const handleBuySubscription = useCallback(async (tier: SubscriptionTier) => {
+    setTxError(null)
+    setTxSuccess(null)
+    setTxHash(null)
+
+    const result = await buySubscription(tier)
+
+    if (result.success) {
+      setTxSuccess('Subscription purchased successfully!')
+      setTxHash(result.hash || null)
+    } else {
+      setTxError(result.error || 'Transaction failed')
+    }
+  }, [buySubscription])
+
+  /**
+   * Handle unstake with error handling
+   */
+  const handleUnstake = useCallback(async () => {
+    setTxError(null)
+    setTxSuccess(null)
+    setTxHash(null)
+
+    const result = await unstake()
+
+    if (result.success) {
+      setTxSuccess('Unstake transaction submitted!')
+      setTxHash(result.hash || null)
+    } else {
+      setTxError(result.error || 'Transaction failed')
+    }
+  }, [unstake])
+
+  /**
+   * Get explorer URL for transaction
+   */
+  const getExplorerUrl = useCallback((hash: string) => {
+    return `https://monadvision.xyz/tx/${hash}`
+  }, [])
   const handleApprove = useCallback(async () => {
     setTxError(null)
     setTxSuccess(null)
@@ -164,6 +309,18 @@ export default function BlockchainPage() {
       animationDuration: `${10 + Math.random() * 10}s`,
     }))
   }, [])
+
+  // Loading state
+  const isLoading = isLoadingToken || isLoadingItemStore || isLoadingStaking
+  const isTxPending = itemStorePending || stakingPending
+
+  // Clear success message after 5 seconds
+  useEffect(() => {
+    if (txSuccess) {
+      const timer = setTimeout(() => setTxSuccess(null), 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [txSuccess])
 
   // Loading state
   const isLoading = isLoadingToken || isLoadingItemStore || isLoadingStaking
@@ -288,13 +445,23 @@ export default function BlockchainPage() {
 
           {/* Transaction Error/Success Messages */}
           {txError && (
-            <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
+            <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg" role="alert">
               <p className="text-red-400 text-sm">{txError}</p>
             </div>
           )}
           {txSuccess && (
-            <div className="mb-4 p-3 bg-green-500/20 border border-green-500/50 rounded-lg">
-              <p className="text-green-400 text-sm">{txSuccess}</p>
+            <div className="mb-4 p-3 bg-green-500/20 border border-green-500/50 rounded-lg" role="status">
+              <p className="text-green-400 text-sm mb-2">{txSuccess}</p>
+              {txHash && (
+                <a
+                  href={getExplorerUrl(txHash)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-green-300 text-xs hover:text-green-200 underline"
+                >
+                  View transaction →
+                </a>
+              )}
             </div>
           )}
 

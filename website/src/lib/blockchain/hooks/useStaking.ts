@@ -173,16 +173,22 @@ export function useStaking(address?: string) {
 
   /**
    * Approve staking contract to spend tokens
+   * SECURITY: Approves MAX_STAKE_AMOUNT instead of unlimited (MaxUint256)
+   * This is safer as it limits the contract's access to your tokens
    */
   const approveStaking = async (): Promise<StakingOperationResult> => {
     try {
       if (!address) throw new Error('No address connected')
 
+      // SECURITY: Approve a reasonable maximum instead of unlimited
+      // This limits potential damage if contract is compromised
+      const maxApproval = parseUnits(STAKING_LIMITS.MAX_AMOUNT.toString(), TOKEN_DECIMALS)
+
       const txHash = await _writeContract({
         address: CONTRACTS.WUXIA_TOKEN,
         abi: WuxiaTokenAbi.abi,
         functionName: 'approve',
-        args: [CONTRACTS.STAKING, 2n ** 256n - 1n], // Unlimited approval
+        args: [CONTRACTS.STAKING, maxApproval], // Limited approval, not unlimited
         gas: getGasLimit('TOKEN_TRANSFER'),
       })
 
