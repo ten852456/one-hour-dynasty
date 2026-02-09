@@ -6,7 +6,9 @@ import { GameAgentModel } from '../../models/GameAgentModel.js'
 import {
   SubmitActionSchema,
   GameStateSchema,
-  GameActionResponseSchema
+  GameActionResponseSchema,
+  WebSocketIncomingMessageSchema,
+  WebSocketOutgoingMessageSchema
 } from './model.js'
 
 // Store WebSocket connections by game
@@ -249,7 +251,25 @@ export const gameRoutes = new Elysia({
       const gameId = ws.data.params.gameId
       const socketId = ws.data.socketId
       ws.data.lastHeartbeat = Date.now() // Update heartbeat on any message
-      console.log(`📨 WebSocket message from game ${gameId}, socket ${socketId}:`, message)
+
+      // SECURITY: Validate incoming message structure
+      try {
+        const isValid = WebSocketIncomingMessageSchema.IsSafeType(message)
+        if (!isValid || !message || typeof message !== 'object' || !('type' in message)) {
+          console.warn(`⚠️  Invalid WebSocket message from socket ${socketId}:`, message)
+          ws.send({
+            type: 'error',
+            error: 'Invalid message format',
+            timestamp: Date.now()
+          })
+          return
+        }
+      } catch (error) {
+        console.error(`❌ WebSocket validation error for socket ${socketId}:`, error)
+        return
+      }
+
+      console.log(`📨 WebSocket message from game ${gameId}, socket ${socketId}:`, (message as any).type)
 
       // Handle different message types
       switch ((message as any).type) {
@@ -279,13 +299,8 @@ export const gameRoutes = new Elysia({
           ws.close()
           break
         default:
-          ws.send({
-            type: 'echo',
-            gameId,
-            socketId,
-            timestamp: Date.now(),
-            data: message
-          })
+          // This should never happen if validation is working correctly
+          console.warn(`⚠️  Unknown message type from socket ${socketId}:`, (message as any).type)
       }
     },
     close(ws, code, reason) {

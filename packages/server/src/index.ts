@@ -7,10 +7,12 @@ import { logger } from './plugins/logger.js'
 import { database } from './plugins/database.js'
 import { jwtPlugin } from './plugins/jwt.js'
 import { audit } from './plugins/audit.js'
+import { requestId } from './plugins/requestId.js'
 import { validateConfig } from './config/index.js'
 import { authRoutes } from './modules/auth/index.js'
 import { gameRoutes } from './modules/game/index.js'
 import { x402Routes } from './modules/x402/index.js'
+import { isAppError } from './utils/errors.js'
 
 // Validate configuration on startup
 validateConfig()
@@ -25,6 +27,7 @@ const app = new Elysia({
   .use(database())
   .use(jwtPlugin())
   .use(audit())
+  .use(requestId())
   .use(rateLimit({
     duration: 60000, // 1 minute
     max: 100, // 100 requests per minute
@@ -75,39 +78,64 @@ const app = new Elysia({
   .use(authRoutes)
   .use(gameRoutes)
   .use(x402Routes)
+  // Add request ID to all response headers
+  .onAfterHandle(({ set, requestId }) => {
+    set.headers['x-request-id'] = requestId
+  })
   // Global error handler
-  .onError(({ code, error, set }) => {
+  .onError(({ code, error, set, requestId }) => {
     console.error('Error:', error)
 
-    // Generate unique request ID for debugging
-    const requestId = crypto.randomUUID().slice(0, 8)
+    // Add request ID to response headers
+    set.headers['x-request-id'] = requestId
 
+    // Handle Elysia's built-in error codes
     if (code === 'VALIDATION') {
       set.status = 400
       return {
         error: 'Validation failed',
-        issues: (error as any).all
+        issues: (error as any).all,
+        requestId
       }
     }
 
     if (code === 'NOT_FOUND') {
       set.status = 404
       return {
-        error: 'Not found'
+        error: 'Not found',
+        requestId
       }
     }
 
+    // Handle custom AppError instances with instanceof
+    if (isAppError(error)) {
+      set.status = (error as any).statusCode
+
+      // Sanitize error messages in production
+      if (config.nodeEnv === 'production') {
+        return {
+          error: (error as any).code,
+          requestId
+        }
+      } else {
+        return {
+          error: (error as any).code,
+          message: (error as Error).message,
+          requestId
+        }
+      }
+    }
+
+    // Handle unknown errors
     set.status = 500
-    // Sanitize error messages in production
     if (config.nodeEnv === 'production') {
       return {
-        error: 'Internal server error',
-        requestId // For debugging, logs should map requestId to full error
+        error: 'INTERNAL_ERROR',
+        requestId
       }
     } else {
-      // Detailed errors in development
       return {
-        error: 'Internal server error',
+        error: 'INTERNAL_ERROR',
         message: (error as Error).message,
         requestId
       }

@@ -2,6 +2,7 @@ import { GameModel } from '../../models/GameModel.js'
 import { GameAgentModel } from '../../models/GameAgentModel.js'
 import { GameActionModel } from '../../models/GameActionModel.js'
 import config from '../../config/index.js'
+import { ForbiddenError, NotFoundError, ConflictError } from '../../utils/errors.js'
 
 export class GameService {
   /**
@@ -52,7 +53,7 @@ export class GameService {
     const game = await GameModel.findById(gameId)
 
     if (!game) {
-      throw new Error('Game not found')
+      throw new NotFoundError('Game not found')
     }
 
     // Get agent count
@@ -97,7 +98,7 @@ export class GameService {
       )
 
       if (existingResult.rows.length > 0) {
-        throw new Error('Agent already in this game')
+        throw new ConflictError('Agent already in this game')
       }
 
       // Add agent to game within transaction
@@ -170,16 +171,14 @@ export class GameService {
     // SECURITY: Verify agent is in the game before allowing action
     const agentInGame = await GameAgentModel.findByGameIdAndAgentId(gameId, agentId)
     if (!agentInGame) {
-      const error = new Error('Agent is not participating in this game')
-      error.name = 'ForbiddenError'
-      throw error
+      throw new ForbiddenError('Agent is not participating in this game')
     }
 
     // Get current tick
     const game = await GameModel.findById(gameId)
 
     if (!game) {
-      throw new Error('Game not found')
+      throw new NotFoundError('Game not found')
     }
 
     const currentTick = game.current_tick || 0

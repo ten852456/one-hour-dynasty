@@ -48,11 +48,26 @@ export class X402Service {
    * MUST implement actual verification before production deployment
    */
   async verifyPayment(paymentId: string): Promise<boolean> {
+    const isProduction = process.env.NODE_ENV === 'production'
+    const isStubMode = process.env.X402_STUB_MODE === 'true'
+
+    // SECURITY: Block stub mode in production
+    if (isProduction && isStubMode) {
+      throw new Error(
+        'CRITICAL SECURITY ERROR: X402_STUB_MODE is enabled in production environment. ' +
+        'Payment verification is disabled. This MUST be fixed before deployment.'
+      )
+    }
+
     // Check if running in stub mode (for development/hackathon only)
-    if (process.env.X402_STUB_MODE === 'true') {
-      console.warn(`⚠️  X402 PAYMENT VERIFICATION IN STUB MODE`)
+    if (isStubMode) {
+      console.warn(`\n${'='.repeat(70)}`)
+      console.warn(`⚠️  X402 PAYMENT VERIFICATION IN INSECURE STUB MODE`)
       console.warn(`   Payment ID: ${paymentId}`)
-      console.warn(`   This is NOT secure and should NEVER be used in production!`)
+      console.warn(`   Environment: ${process.env.NODE_ENV || 'development'}`)
+      console.warn(`   ALL payments are being approved without verification!`)
+      console.warn(`   This is for DEVELOPMENT ONLY and should NEVER be used in production!`)
+      console.warn(`${'='.repeat(70)}\n`)
       return true
     }
 
@@ -64,7 +79,10 @@ export class X402Service {
     // return true
 
     // For now, throw error to prevent insecure deployment
-    throw new Error('X402 payment verification not implemented. Set X402_STUB_MODE=true for development only.')
+    throw new Error(
+      'X402 payment verification not implemented. ' +
+      'Set X402_STUB_MODE=true for development only, or implement production verification.'
+    )
   }
 
   /**

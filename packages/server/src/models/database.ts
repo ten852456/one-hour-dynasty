@@ -111,6 +111,13 @@ export async function transaction<T>(
     return result;
   } catch (error) {
     await client.query('ROLLBACK');
+
+    // Log transaction rollback for debugging
+    console.error('❌ Transaction rolled back due to error:', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+
     throw error;
   } finally {
     client.release();
