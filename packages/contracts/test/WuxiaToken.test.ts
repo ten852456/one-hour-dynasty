@@ -43,7 +43,7 @@ describe("WuxiaToken", function () {
   describe("Burn Functionality", function () {
     it("Test 3: Should burn tokens and reduce total supply", async function () {
       await wuxiaToken.transfer(user1.address, MINT_AMOUNT);
-      
+
       const initialTotalSupply = await wuxiaToken.totalSupply();
       const initialUserBalance = await wuxiaToken.balanceOf(user1.address);
 
@@ -83,13 +83,13 @@ describe("WuxiaToken", function () {
 
     it("Test 5: Should revert when non-owner tries to mint", async function () {
       await expect(
-        wuxiaToken.connect(user1).mint(user2.address, MINT_AMOUNT)
+        wuxiaToken.connect(user1).mint(user2.address, MINT_AMOUNT),
       ).to.be.revertedWithCustomError(wuxiaToken, "OwnableUnauthorizedAccount");
     });
 
     it("Should reject minting to zero address", async function () {
       await expect(
-        wuxiaToken.mint(ethers.ZeroAddress, MINT_AMOUNT)
+        wuxiaToken.mint(ethers.ZeroAddress, MINT_AMOUNT),
       ).to.be.revertedWithCustomError(wuxiaToken, "InvalidOwner");
     });
   });

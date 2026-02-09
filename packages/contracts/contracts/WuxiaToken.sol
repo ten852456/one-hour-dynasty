@@ -13,13 +13,15 @@ import "./Errors.sol";
  */
 contract WuxiaToken is ERC20, ERC20Burnable, Ownable, Errors {
     /// @dev Maximum supply cap to ensure fixed supply (100,000,000 tokens)
-    uint256 public constant MAX_SUPPLY = 100_000_000 * 10**18;
+    uint256 public constant MAX_SUPPLY = 100_000_000 * 10 ** 18;
 
     /**
      * @dev Constructor that mints the entire supply to the deployer
      * @param initialOwner The address that will receive the initial token supply and become the owner
      */
-    constructor(address initialOwner) ERC20("WUXIA", "WUXIA") Ownable(initialOwner) {
+    constructor(
+        address initialOwner
+    ) ERC20("WUXIA", "WUXIA") Ownable(initialOwner) {
         if (initialOwner == address(0)) revert InvalidOwner();
         _mint(initialOwner, MAX_SUPPLY);
     }

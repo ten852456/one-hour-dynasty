@@ -14,8 +14,8 @@ contract Staking is Ownable, ReentrancyGuard, Errors {
 
     /// @dev Packed stake struct for gas optimization (32 bytes total)
     struct Stake {
-        uint96 amount;       // Max: ~79 billion WUXIA (more than enough)
-        uint64 timestamp;    // Max year: 292,277,026,565 AD
+        uint96 amount; // Max: ~79 billion WUXIA (more than enough)
+        uint64 timestamp; // Max year: 292,277,026,565 AD
         uint96 lockDuration; // Max: >> universe age in seconds
     }
 
@@ -58,7 +58,11 @@ contract Staking is Ownable, ReentrancyGuard, Errors {
         Stake storage userStake = stakes[msg.sender];
         if (userStake.amount == 0) revert NoStakeFound();
 
-        wuxiaToken.safeTransferFrom(msg.sender, address(this), additionalAmount);
+        wuxiaToken.safeTransferFrom(
+            msg.sender,
+            address(this),
+            additionalAmount
+        );
 
         // Use unchecked to prevent overflow check (safe since we check cap below)
         unchecked {
@@ -72,11 +76,12 @@ contract Staking is Ownable, ReentrancyGuard, Errors {
     function unstake() external nonReentrant {
         Stake memory userStake = stakes[msg.sender];
         uint256 amount = uint256(userStake.amount);
-        
+
         if (amount == 0) revert NoStakeFound();
 
         if (userStake.lockDuration > 0) {
-            uint256 lockEndTime = uint256(userStake.timestamp) + uint256(userStake.lockDuration);
+            uint256 lockEndTime = uint256(userStake.timestamp) +
+                uint256(userStake.lockDuration);
             if (block.timestamp < lockEndTime) {
                 revert LockPeriodNotExpired();
             }
